@@ -1,0 +1,22 @@
+﻿@rendermode InteractiveServer
+@inject IDialogService DialogService
+
+<FluentHeader>
+    OnlineShop
+    <FluentSpacer />
+    <FluentIcon Value="@(new Icons.Regular.Size20.Settings())"
+                Color="Color.Lightweight"
+                OnClick="@ShowSettingsAsync" />
+</FluentHeader>
+
+@code {
+    private async Task ShowSettingsAsync()
+    {
+        await DialogService.ShowPanelAsync<Pages.Settings>(new DialogParameters()
+            {
+                Title = "Settings",
+                Alignment = HorizontalAlignment.Right,
+                SecondaryAction = null,
+            });
+    }
+}

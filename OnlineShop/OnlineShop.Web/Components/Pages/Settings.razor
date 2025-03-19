@@ -1,0 +1,20 @@
+﻿@rendermode InteractiveServer
+@implements IDialogContentComponent
+
+<FluentDesignTheme @bind-Mode="@Mode"
+                   @bind-OfficeColor="@Color"
+                   StorageName="theme" />
+
+<FluentSelect Label="Theme"
+              Items="@(Enum.GetValues<DesignThemeModes>())"
+              @bind-SelectedOption="@Mode" />
+
+<FluentSelect Label="Color"
+              Items="@(new OfficeColor?[] {OfficeColor.Word, OfficeColor.Excel, OfficeColor.PowerPoint })"
+              @bind-SelectedOption="@Color" />
+
+
+@code {
+    private DesignThemeModes Mode = DesignThemeModes.System;
+    private OfficeColor? Color = OfficeColor.Word;
+}
