@@ -8,6 +8,7 @@
 
 	<ItemGroup>
 		<ProjectReference Include="..\OnlineShop.ServiceDefaults\OnlineShop.ServiceDefaults.csproj" />
+		<ProjectReference Include="..\OnlineShop.Shared\OnlineShop.Shared.csproj" />
 		<PackageReference Include="Microsoft.FluentUI.AspNetCore.Components" Version="4.11.6" />
 		<PackageReference Include="Microsoft.FluentUI.AspNetCore.Components.DataGrid.EntityFrameworkAdapter" Version="4.11.6" />
 		<PackageReference Include="Microsoft.FluentUI.AspNetCore.Components.Icons" Version="4.11.6" />

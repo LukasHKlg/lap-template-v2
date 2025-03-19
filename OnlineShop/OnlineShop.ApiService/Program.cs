@@ -1,3 +1,5 @@
+using OnlineShop.Shared.DTOs;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add service defaults & Aspire client integrations.
@@ -33,7 +35,11 @@ app.MapGet("/weatherforecast", () =>
             summaries[Random.Shared.Next(summaries.Length)]
         ))
         .ToArray();
-    return forecast;
+
+    var forecastDTOs = forecast.Select(x =>
+        new WeatherForecastDTO(x.Date, x.TemperatureC, x.TemperatureF, x.Summary));
+
+    return forecastDTOs;
 })
 .WithName("GetWeatherForecast")
 .WithOpenApi();
