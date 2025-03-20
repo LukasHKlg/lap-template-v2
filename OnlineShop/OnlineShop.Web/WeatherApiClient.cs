@@ -8,7 +8,7 @@ public class WeatherApiClient(HttpClient httpClient)
     {
         List<WeatherForecastDTO>? forecasts = null;
 
-        await foreach (var forecast in httpClient.GetFromJsonAsAsyncEnumerable<WeatherForecastDTO>("/weatherforecast", cancellationToken))
+        await foreach (var forecast in httpClient.GetFromJsonAsAsyncEnumerable<WeatherForecastDTO>("/WeatherForecast", cancellationToken))
         {
             if (forecasts?.Count >= maxItems)
             {
