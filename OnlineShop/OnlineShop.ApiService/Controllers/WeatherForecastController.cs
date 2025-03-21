@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using OnlineShop.ApiService.Models;
 using OnlineShop.Shared.DTOs;
@@ -5,7 +6,7 @@ using OnlineShop.Shared.DTOs;
 namespace OnlineShop.ApiService.Controllers;
 
 [ApiController]
-[Route("[controller]")]
+[Route("api/[controller]")]
 public class WeatherForecastController : ControllerBase
 {
     private static readonly string[] Summaries = new[]
@@ -20,7 +21,8 @@ public class WeatherForecastController : ControllerBase
         _logger = logger;
     }
 
-    [HttpGet(Name = "GetWeatherForecast")]
+    [HttpGet("weatherforecast")]
+    [Authorize]
     public IEnumerable<WeatherForecastDTO> Get()
     {
         try
@@ -39,6 +41,7 @@ public class WeatherForecastController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError("Error while getting WeatherForecasts, Error: {0}", ex);
+            Console.WriteLine("Error while getting WeatherForecasts, Error: {0}", ex);
             throw;
         }
         
