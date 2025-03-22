@@ -86,6 +86,19 @@ builder.Services.AddEndpointsApiExplorer();
 
 var app = builder.Build();
 
+
+
+using var scope = app.Services.CreateScope();
+var services = scope.ServiceProvider;
+
+var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();
+var context = services.GetRequiredService<UserDbContext>();
+
+await SeedUsersAndCustomers.SeedUsersAndCustomersAsync(userManager, context);
+
+
+
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();

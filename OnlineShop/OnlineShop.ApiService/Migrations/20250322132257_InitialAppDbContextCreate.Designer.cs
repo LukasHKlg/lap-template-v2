@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using OnlineShop.ApiService.Data;
 
@@ -11,9 +12,11 @@ using OnlineShop.ApiService.Data;
 namespace OnlineShop.ApiService.Migrations
 {
     [DbContext(typeof(UserDbContext))]
-    partial class UserDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250322132257_InitialAppDbContextCreate")]
+    partial class InitialAppDbContextCreate
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -259,18 +262,6 @@ namespace OnlineShop.ApiService.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("BillingAddresses");
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 2,
-                            City = "Springfield",
-                            Country = "USA",
-                            HouseNum = "2B",
-                            State = "IL",
-                            Street = "456 Elm St",
-                            ZipCode = "62704"
-                        });
                 });
 
             modelBuilder.Entity("OnlineShop.ApiService.Models.Cart", b =>
@@ -287,13 +278,6 @@ namespace OnlineShop.ApiService.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Carts");
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            TotalPrice = 1500.0
-                        });
                 });
 
             modelBuilder.Entity("OnlineShop.ApiService.Models.CartItem", b =>
@@ -323,16 +307,6 @@ namespace OnlineShop.ApiService.Migrations
                     b.HasIndex("ProductId");
 
                     b.ToTable("CartItems");
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            CartId = 1,
-                            Price = 1500.0,
-                            ProductId = 1,
-                            Quantity = 1
-                        });
                 });
 
             modelBuilder.Entity("OnlineShop.ApiService.Models.Customer", b =>
@@ -378,18 +352,6 @@ namespace OnlineShop.ApiService.Migrations
                     b.HasIndex("ShippingAddressId");
 
                     b.ToTable("Customers");
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            BillingAddressId = 2,
-                            CartId = 1,
-                            FirstName = "John",
-                            LastName = "Doe",
-                            PhoneNumber = "555-1234",
-                            ShippingAddressId = 1
-                        });
                 });
 
             modelBuilder.Entity("OnlineShop.ApiService.Models.Product", b =>
@@ -425,28 +387,6 @@ namespace OnlineShop.ApiService.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Products");
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            Category = "Electronics",
-                            Description = "A powerful laptop",
-                            Manufacturer = "Dell",
-                            Name = "Laptop",
-                            Price = 1500.0,
-                            Stock = 20
-                        },
-                        new
-                        {
-                            Id = 2,
-                            Category = "Electronics",
-                            Description = "Latest model smartphone",
-                            Manufacturer = "Samsung",
-                            Name = "Smartphone",
-                            Price = 800.0,
-                            Stock = 50
-                        });
                 });
 
             modelBuilder.Entity("OnlineShop.ApiService.Models.SalesOrder", b =>
@@ -480,16 +420,6 @@ namespace OnlineShop.ApiService.Migrations
                     b.HasIndex("ShippingAddressId");
 
                     b.ToTable("SalesOrders");
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            BillingAddressId = 2,
-                            CartId = 1,
-                            CustomerId = 1,
-                            ShippingAddressId = 1
-                        });
                 });
 
             modelBuilder.Entity("OnlineShop.ApiService.Models.ShippingAddress", b =>
@@ -527,18 +457,6 @@ namespace OnlineShop.ApiService.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("ShippingAddresses");
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            City = "Springfield",
-                            Country = "USA",
-                            HouseNum = "1A",
-                            State = "IL",
-                            Street = "123 Main St",
-                            ZipCode = "62704"
-                        });
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
