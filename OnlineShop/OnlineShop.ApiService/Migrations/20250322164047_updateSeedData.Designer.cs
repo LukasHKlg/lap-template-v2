@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using OnlineShop.ApiService.Data;
 
@@ -11,9 +12,11 @@ using OnlineShop.ApiService.Data;
 namespace OnlineShop.ApiService.Migrations
 {
     [DbContext(typeof(UserDbContext))]
-    partial class UserDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250322164047_updateSeedData")]
+    partial class updateSeedData
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -270,6 +273,36 @@ namespace OnlineShop.ApiService.Migrations
                             State = "IL",
                             Street = "456 Elm St",
                             ZipCode = "62704"
+                        },
+                        new
+                        {
+                            Id = 3,
+                            City = "Wolfsberg",
+                            Country = "Österreich",
+                            HouseNum = "15",
+                            State = "Kärnten",
+                            Street = "Lausing",
+                            ZipCode = "9411"
+                        },
+                        new
+                        {
+                            Id = 5,
+                            City = "St. Michale",
+                            Country = "Österreich",
+                            HouseNum = "5",
+                            State = "Kärnten",
+                            Street = "Lausing",
+                            ZipCode = "9411"
+                        },
+                        new
+                        {
+                            Id = 7,
+                            City = "Klagenfurt",
+                            Country = "Kärnten",
+                            HouseNum = "1",
+                            State = "Kärnten",
+                            Street = "Arnulfplatz",
+                            ZipCode = "9010"
                         });
                 });
 
@@ -293,6 +326,21 @@ namespace OnlineShop.ApiService.Migrations
                         {
                             Id = 1,
                             TotalPrice = 1500.0
+                        },
+                        new
+                        {
+                            Id = 3,
+                            TotalPrice = 0.0
+                        },
+                        new
+                        {
+                            Id = 4,
+                            TotalPrice = 0.0
+                        },
+                        new
+                        {
+                            Id = 5,
+                            TotalPrice = 0.0
                         });
                 });
 
@@ -538,6 +586,36 @@ namespace OnlineShop.ApiService.Migrations
                             State = "IL",
                             Street = "123 Main St",
                             ZipCode = "62704"
+                        },
+                        new
+                        {
+                            Id = 4,
+                            City = "Wolfsberg",
+                            Country = "Österreich",
+                            HouseNum = "15",
+                            State = "Kärnten",
+                            Street = "Lausing",
+                            ZipCode = "9411"
+                        },
+                        new
+                        {
+                            Id = 6,
+                            City = "St. Michale",
+                            Country = "Österreich",
+                            HouseNum = "5",
+                            State = "Kärnten",
+                            Street = "Lausing",
+                            ZipCode = "9411"
+                        },
+                        new
+                        {
+                            Id = 8,
+                            City = "Klagenfurt",
+                            Country = "Kärnten",
+                            HouseNum = "1",
+                            State = "Kärnten",
+                            Street = "Arnulfplatz",
+                            ZipCode = "9010"
                         });
                 });
 

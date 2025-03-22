@@ -59,6 +59,7 @@ namespace OnlineShop.ApiService.Data
                     Country = "USA"
                 }
             );
+
             modelBuilder.Entity<BillingAddress>().HasData(
                 new BillingAddress
                 {
@@ -71,6 +72,7 @@ namespace OnlineShop.ApiService.Data
                     Country = "USA"
                 }
             );
+
 
             // Seed Cart
             modelBuilder.Entity<Cart>().HasData(
@@ -93,19 +95,19 @@ namespace OnlineShop.ApiService.Data
                 }
             );
 
-            //// Seed Customer (note: for ApplicationUser you might need a different approach)
-            //modelBuilder.Entity<Customer>().HasData(
-            //    new
-            //    {
-            //        Id = 1,
-            //        FirstName = "John",
-            //        LastName = "Doe",
-            //        PhoneNumber = "555-1234",
-            //        ShippingAddressId = 1, 
-            //        BillingAddressId = 2, 
-            //        CartId = 1
-            //    }
-            //);
+            // Seed Customer (Note: This is a customer without a login, to get a login user look at SeedUsersAndCustomers.cs file)
+            modelBuilder.Entity<Customer>().HasData(
+                new
+                {
+                    Id = 4,
+                    FirstName = "Andre",
+                    LastName = "Ludwig",
+                    PhoneNumber = "555-1234",
+                    ShippingAddressId = 1,
+                    BillingAddressId = 2,
+                    CartId = 1
+                }
+            );
 
             // Seed SalesOrder
             modelBuilder.Entity<SalesOrder>().HasData(
@@ -114,7 +116,7 @@ namespace OnlineShop.ApiService.Data
                     Id = 1,
                     // Similarly, use foreign key properties if available.
                     CartId = 1,
-                    CustomerId = 1,
+                    CustomerId = 4,
                     ShippingAddressId = 1,
                     BillingAddressId = 2
                 }
