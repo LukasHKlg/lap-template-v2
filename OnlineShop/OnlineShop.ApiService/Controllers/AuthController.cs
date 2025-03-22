@@ -1,8 +1,11 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using System.Text.RegularExpressions;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using OnlineShop.ApiService.Models;
 using OnlineShop.ApiService.Services;
+using OnlineShop.Shared.Constants;
+using OnlineShop.Shared.Models;
 
 namespace OnlineShop.ApiService.Controllers
 {
@@ -30,14 +33,19 @@ namespace OnlineShop.ApiService.Controllers
         {
             try
             {
+                //check password pattern
+                bool isPasswordOK = Regex.IsMatch(model.Password, WebConstants.PasswordRegexPattern);
+                if (!isPasswordOK) return BadRequest("Must contain at least one number and one uppercase and lowercase letter, and at least 8 or more characters");
+
                 var userId = Guid.NewGuid().ToString();
-                var user = new ApplicationUser { UserId = userId, UserName = model.Username, Email = model.Email, FirstName = model.FirstName, LastName = model.LastName, CustomerPhone = model.CustomerPhone };
+                var user = new ApplicationUser { UserId = userId, Email = model.Email, UserName = model.Email };
                 var result = await _userManager.CreateAsync(user, model.Password);
                 if (result.Succeeded)
                 {
                     return Ok(new { message = "User registered successfully!" });
                 }
-                return BadRequest(result.Errors);
+                var errorDescriptions = result.Errors.Select(x => x.Description).ToList();
+                return BadRequest(String.Join(", ", errorDescriptions));
             }
             catch (Exception ex)
             {

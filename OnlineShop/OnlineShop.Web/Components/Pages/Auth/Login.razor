@@ -1,0 +1,128 @@
+﻿@page "/login"
+@using Microsoft.AspNetCore.Authentication
+@using Microsoft.AspNetCore.Authentication.Cookies
+@using OnlineShop.Shared.Models
+@using OnlineShop.Web.Services
+@using System.ComponentModel.DataAnnotations
+@using System.Security.Claims
+
+@* @inject AuthService AuthService *@
+@inject NavigationManager NavManager
+@inject IToastService ToastService
+@inject IHttpContextAccessor HttpContextAccessor
+@inject HttpClient _httpClient
+@inject IHttpClientFactory IHttpClientFactory
+
+<PageTitle>Login</PageTitle>
+
+
+<FluentGrid Justify="JustifyContent.Center" Style="height: 100%;" Class="login-page-grid">
+	<FluentGridItem Justify="JustifyContent.Center" Style="height: 100%">
+		<EditForm EditContext="@loginEditContext" id="login-form" class="login-register-form" FormName="Login" OnSubmit="CheckLogin">
+			<h1>Login</h1>
+			<DataAnnotationsValidator />
+
+			<ValidationMessage For="@(() => loginModel.Email)" />
+			<FluentTextField Autofocus="true" Size="35" Required @bind-Value="loginModel.Email" TextFieldType="TextFieldType.Email" Placeholder="E-Mail" Id="txtLogin" Name="loginModel.Email" Label="E-Mail">
+				<FluentIcon Value="new Icons.Regular.Size20.Mail()" Slot="end" />
+			</FluentTextField>
+			<br />
+
+			<ValidationMessage For="@(() => loginModel.Password)" />
+			<FluentTextField @bind-Value="loginModel.Password" Required TextFieldType="TextFieldType.Password" Placeholder="Password" Id="txtPassword" Name="loginModel.Password" Label="Password">
+				<FluentIcon Value="new Icons.Regular.Size20.Key()" Slot="end" />
+			</FluentTextField>
+			<br />
+			<ValidationMessage For="@(() => loginModel.isValid)" />
+			<br />
+			<FluentButton Id="submit" Type="ButtonType.Submit" FormId="login-form" Appearance="Appearance.Accent">Login</FluentButton>
+			<br />
+			Don't have an account? <a href="register">Register Here</a>
+		</EditForm>
+	</FluentGridItem>
+</FluentGrid>
+
+
+@code {
+	[SupplyParameterFromForm]
+	public LoginModel loginModel { get; set; } = new();
+	public EditContext? loginEditContext;
+	ValidationMessageStore validationMessages;
+
+
+	protected override async Task OnInitializedAsync()
+	{
+		loginEditContext = new(loginModel);
+		validationMessages = new(loginEditContext);
+	}
+
+	private async Task CheckLogin()
+	{
+		bool loginFormValid = loginEditContext.Validate();
+		var validField = loginEditContext.Field(nameof(loginModel.isValid));
+
+		if (!loginFormValid)
+		{
+			validationMessages.Add(validField, "All input fields have to be set!");
+			loginModel.Password = "";
+			loginModel.Email = "";
+			return;
+		}
+
+
+		_httpClient = IHttpClientFactory.CreateClient("ApiClient");
+
+		// Call the API's login endpoint
+		var response = await _httpClient.PostAsJsonAsync("/api/auth/login", loginModel);
+		if (response.IsSuccessStatusCode)
+		{
+			var result = await response.Content.ReadFromJsonAsync<LoginResponse>();
+			var jwtToken = result?.Token;
+
+			if (!string.IsNullOrEmpty(jwtToken))
+			{
+				// Create claims (store the JWT token in a claim)
+				var claims = new List<Claim>
+				{
+					new Claim(ClaimTypes.Name, loginModel.Email),
+					new Claim("access_token", jwtToken)
+				};
+
+				var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+				var principal = new ClaimsPrincipal(identity);
+
+				// Sign in the user with cookie authentication.
+				await HttpContextAccessor.HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal);
+
+				// Navigate to the home page (or a secure page)
+				RedirectTo("/");
+			}
+			else
+			{
+				validationMessages.Add(validField, "Login failed: no token received.");
+			}
+		}
+		else
+		{
+			validationMessages.Add(validField, "Login failed: invalid credentials.");
+			return;
+		}
+	}
+
+
+	private void RedirectTo(string path)
+	{
+		NavManager.NavigateTo(path);
+	}
+
+
+	public class LoginModel : LoginRequest
+	{
+		public bool isValid = false;
+	}
+
+	public class LoginResponse
+	{
+		public string Token { get; set; }
+	}
+}

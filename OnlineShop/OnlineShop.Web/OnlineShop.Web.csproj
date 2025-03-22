@@ -9,9 +9,17 @@
 	<ItemGroup>
 		<ProjectReference Include="..\OnlineShop.ServiceDefaults\OnlineShop.ServiceDefaults.csproj" />
 		<ProjectReference Include="..\OnlineShop.Shared\OnlineShop.Shared.csproj" />
+		<PackageReference Include="Blazored.LocalStorage" Version="4.5.0" />
+		<PackageReference Include="Microsoft.AspNetCore.Components.Authorization" Version="8.0.14" />
 		<PackageReference Include="Microsoft.FluentUI.AspNetCore.Components" Version="4.11.6" />
 		<PackageReference Include="Microsoft.FluentUI.AspNetCore.Components.DataGrid.EntityFrameworkAdapter" Version="4.11.6" />
 		<PackageReference Include="Microsoft.FluentUI.AspNetCore.Components.Icons" Version="4.11.6" />
+		<PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.6.1" />
+		<PackageReference Include="System.Net.Http.Json" Version="9.0.3" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Folder Include="wwwroot\js\" />
 	</ItemGroup>
 
 </Project>

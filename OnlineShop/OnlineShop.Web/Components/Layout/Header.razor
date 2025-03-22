@@ -1,22 +1,42 @@
 ﻿@rendermode InteractiveServer
 @inject IDialogService DialogService
+@inject NavigationManager NavigationManager
 
 <FluentHeader>
-    OnlineShop
-    <FluentSpacer />
-    <FluentIcon Value="@(new Icons.Regular.Size20.Settings())"
-                Color="Color.Lightweight"
-                OnClick="@ShowSettingsAsync" />
+	OnlineShop
+	<FluentSpacer />
+	<AuthorizeView>
+		<Authorized>
+			<FluentStack HorizontalAlignment="HorizontalAlignment.End"
+						 VerticalAlignment="VerticalAlignment.Center">
+				<FluentProfileMenu FullName="@context.User.Identity.Name" EMail="@context.User.Identity.Name" OnHeaderButtonClick="@(() => RedirectTo("logout"))"> 
+					<StartTemplate>@context.User.Identity.Name</StartTemplate>
+				</FluentProfileMenu>
+			</FluentStack>
+		</Authorized>
+		<NotAuthorized>
+			<FluentButton Appearance="Appearance.Lightweight" Type="ButtonType.Button" OnClick="@(() => RedirectTo("login"))">Login</FluentButton>
+		</NotAuthorized>
+	</AuthorizeView>
+	<FluentSpacer Width="15" />
+	<FluentIcon Value="@(new Icons.Regular.Size20.Settings())"
+				Color="Color.Lightweight"
+				OnClick="@ShowSettingsAsync" />
 </FluentHeader>
 
 @code {
-    private async Task ShowSettingsAsync()
-    {
-        await DialogService.ShowPanelAsync<Pages.Settings>(new DialogParameters()
-            {
-                Title = "Settings",
-                Alignment = HorizontalAlignment.Right,
-                SecondaryAction = null,
-            });
-    }
+	private async Task ShowSettingsAsync()
+	{
+		await DialogService.ShowPanelAsync<Pages.Settings>(new DialogParameters()
+			{
+				Title = "Settings",
+				Alignment = HorizontalAlignment.Right,
+				SecondaryAction = null,
+			});
+	}
+
+	private void RedirectTo(string path)
+	{
+		NavigationManager.NavigateTo(path);
+	}
 }

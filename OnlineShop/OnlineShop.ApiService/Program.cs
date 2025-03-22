@@ -43,11 +43,12 @@ builder.Services.AddAuthentication(x => {
         options.TokenValidationParameters = new()
         {
             ValidIssuer = builder.Configuration["Jwt:Issuer"],
-            ValidateIssuer = false,
+            ValidateIssuer = true,
             ValidateIssuerSigningKey = true,
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"])),
             ValidateAudience = false,
-            ClockSkew = TimeSpan.Zero
+            ClockSkew = TimeSpan.Zero,
+            ValidateLifetime = true
         };
     });
 builder.Services.AddAuthorization();
