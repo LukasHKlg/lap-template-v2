@@ -7,6 +7,7 @@ using OnlineShop.ApiService.Models;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using OnlineShop.ApiService.Services;
 using Microsoft.OpenApi.Models;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -87,16 +88,24 @@ builder.Services.AddEndpointsApiExplorer();
 var app = builder.Build();
 
 
+#region SeedDB
+try
+{
+    using var scope = app.Services.CreateScope();
+    var services = scope.ServiceProvider;
 
-using var scope = app.Services.CreateScope();
-var services = scope.ServiceProvider;
+    var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();
+    var context = services.GetRequiredService<UserDbContext>();
 
-var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();
-var context = services.GetRequiredService<UserDbContext>();
+    await SeedUsersAndCustomers.SeedUsersAndCustomersAsync(userManager, context);
 
-await SeedUsersAndCustomers.SeedUsersAndCustomersAsync(userManager, context);
-
-
+}
+catch (Exception ex)
+{
+    app.Logger.LogError("Error while seeding the db. Did you already update the database with 'dotnet ef database update --context UserDbContext'" + ex.ToString());
+    throw;
+}
+#endregion SeedDB
 
 
 if (app.Environment.IsDevelopment())
