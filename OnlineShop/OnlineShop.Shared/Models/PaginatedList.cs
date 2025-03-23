@@ -8,7 +8,7 @@ namespace OnlineShop.Shared.Models
 {
     public class PaginatedList<T>
     {
-        public List<T> Items { get; }
+        public List<T> Items { get; set; }
         public int PageIndex { get; }
         public int TotalPages { get; }
         public bool HasPreviousPage => PageIndex > 1;

@@ -1,4 +1,3 @@
-using OnlineShop.Web;
 using OnlineShop.Web.Components;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Blazored.LocalStorage;
@@ -6,6 +5,7 @@ using OnlineShop.Web.Services;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using OnlineShop.Web.ApiClients;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -48,6 +48,7 @@ builder.Services.AddHttpClient("ApiClient", client =>
 
 
 builder.Services.AddScoped<WeatherApiClient>();
+builder.Services.AddScoped<ProductApiClient>();
 
 var app = builder.Build();
 

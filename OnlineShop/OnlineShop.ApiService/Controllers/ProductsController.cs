@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OnlineShop.ApiService.Data;
 using OnlineShop.ApiService.Models;
+using OnlineShop.Shared.DTOs;
 using OnlineShop.Shared.Models;
 
 namespace OnlineShop.ApiService.Controllers
@@ -25,7 +26,7 @@ namespace OnlineShop.ApiService.Controllers
 
         // GET: api/Products
         [HttpGet]
-        public async Task<PaginatedList<Product>> GetProducts(int pageIndex, int pageSize)
+        public async Task<ActionResult<PaginatedList<ProductDTO>>> GetProducts(int pageIndex, int pageSize)
         {
             //return await _context.Products.ToListAsync();
 
@@ -35,10 +36,67 @@ namespace OnlineShop.ApiService.Controllers
             .Take(pageSize)
             .ToListAsync();
 
+            if (products == null || products.Count == 0) return NotFound();
+
+            var productDTOs = products.Select(x =>
+                new ProductDTO
+                {
+                    Id = x.Id,
+                    Name = x.Name,
+                    Category = x.Category,
+                    Description = x.Description,
+                    Manufacturer = x.Manufacturer,
+                    Price = x.Price,
+                    Stock = x.Stock
+                }).ToList();
+
             var count = await _context.Products.CountAsync();
             var totalPages = (int)Math.Ceiling(count / (double)pageSize);
 
-            return new PaginatedList<Product>(products, pageIndex, totalPages);
+            return new PaginatedList<ProductDTO>(productDTOs, pageIndex, totalPages);
+        }
+
+        // GET: api/Products?searchValue
+        [HttpGet]
+        [Route("search")]
+        public async Task<ActionResult<PaginatedList<ProductDTO>>> GetProductsForSearch(string searchValue, int pageIndex, int pageSize)
+        {
+            //return await _context.Products.ToListAsync();
+
+            if (pageIndex == 0) pageIndex = 1;
+
+            var products = await _context.Products
+            .Where(x => x.Name.Contains(searchValue) ||
+            x.Manufacturer.Contains(searchValue) ||
+            x.Category.Contains(searchValue) ||
+            x.Description.Contains(searchValue))
+            .OrderBy(b => b.Id)
+            .Skip((pageIndex - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+            if (products == null || products.Count == 0) return NotFound();
+
+            var productDTOs = products.Select(x =>
+                new ProductDTO
+                {
+                    Id = x.Id,
+                    Name = x.Name,
+                    Category = x.Category,
+                    Description = x.Description,
+                    Manufacturer = x.Manufacturer,
+                    Price = x.Price,
+                    Stock = x.Stock
+                }).ToList();
+
+            var count = await _context.Products.Where(x => x.Name.Contains(searchValue) ||
+                                                        x.Manufacturer.Contains(searchValue) ||
+                                                        x.Category.Contains(searchValue) ||
+                                                        x.Description.Contains(searchValue)
+                                                        ).CountAsync();
+            var totalPages = (int)Math.Ceiling(count / (double)pageSize);
+
+            return new PaginatedList<ProductDTO>(productDTOs, pageIndex, totalPages);
         }
 
         // GET: api/Products/5

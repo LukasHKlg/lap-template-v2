@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
 using OnlineShop.Shared.DTOs;
 using OnlineShop.Web.Services;
 
-namespace OnlineShop.Web;
+namespace OnlineShop.Web.ApiClients;
 
 public class WeatherApiClient
 {
@@ -52,6 +52,6 @@ public class WeatherApiClient
         {
             throw;
         }
-        
+
     }
 }
