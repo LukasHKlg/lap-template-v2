@@ -6,6 +6,7 @@
 @inject ProductApiClient ProductApiClient
 @inject IToastService ToastService
 @inject NavigationManager NavManager
+@inject IConfiguration config
 
 <PageTitle>OnlineShop</PageTitle>
 
@@ -19,9 +20,9 @@
 		<FluentStack Wrap="true" HorizontalAlignment="HorizontalAlignment.Left">
 			@foreach (var product in productsPagination.Items)
 			{
-				<FluentCard Class="product-card-fluent" Width="20rem" Height="20rem" AreaRestricted="false" onclick="@(() => RedirectTo("/"))">
+				<FluentCard Class="product-card-fluent" Width="20rem" Height="20rem" AreaRestricted="false" onclick="@(() => RedirectTo($"/product/{product.Id}"))">
 					<div class="product-card">
-						<img class="product-card-img" src="images/products/@(product.Id).jpg" />
+						<img class="product-card-img" src="@(Helpers.GetPictureUrl(product.Id + ".jpg", config))" />
 						<div class="product-card-name">
 							@product.Name
 						</div>

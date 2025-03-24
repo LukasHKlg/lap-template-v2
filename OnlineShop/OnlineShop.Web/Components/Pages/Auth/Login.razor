@@ -5,6 +5,7 @@
 @using OnlineShop.Web.Services
 @using System.ComponentModel.DataAnnotations
 @using System.Security.Claims
+@using System.IdentityModel.Tokens.Jwt
 
 @* @inject AuthService AuthService *@
 @inject NavigationManager NavManager
@@ -79,6 +80,9 @@
 			var result = await response.Content.ReadFromJsonAsync<LoginResponse>();
 			var jwtToken = result?.Token;
 
+			var handler = new JwtSecurityTokenHandler();
+			var jwtTokenParsed = handler.ReadJwtToken(jwtToken);
+
 			if (!string.IsNullOrEmpty(jwtToken))
 			{
 				// Create claims (store the JWT token in a claim)
@@ -87,6 +91,11 @@
 					new Claim(ClaimTypes.Name, loginModel.Email),
 					new Claim("access_token", jwtToken)
 				};
+
+				foreach(var role in jwtTokenParsed.Claims.Where(x => x.Type == ClaimTypes.Role).Select(x => x.Value).ToList())
+				{
+					claims.Add(new Claim(ClaimTypes.Role, role));
+				}
 
 				var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
 				var principal = new ClaimsPrincipal(identity);

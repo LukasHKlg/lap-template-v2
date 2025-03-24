@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using OnlineShop.ApiService.Data;
 using OnlineShop.ApiService.Models;
 using OnlineShop.ApiService.Services;
 using OnlineShop.Shared.Constants;
@@ -16,16 +17,18 @@ namespace OnlineShop.ApiService.Controllers
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly SignInManager<ApplicationUser> _signInManager;
         private readonly TokenService _tokenService;
+        private readonly UserDbContext _userDbContext;
         private IConfiguration _config;
         private ILogger<AuthController> _logger;
 
-        public AuthController(UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager, IConfiguration configuration, TokenService tokenService, ILogger<AuthController> logger)
+        public AuthController(UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager, IConfiguration configuration, TokenService tokenService, ILogger<AuthController> logger, UserDbContext userDbContext)
         {
             _config = configuration;
             _userManager = userManager;
             _signInManager = signInManager;
             _tokenService = tokenService;
             _logger = logger;
+            _userDbContext = userDbContext;
         }
 
         [HttpPost("register")]
@@ -37,15 +40,49 @@ namespace OnlineShop.ApiService.Controllers
                 bool isPasswordOK = Regex.IsMatch(model.Password, WebConstants.PasswordRegexPattern);
                 if (!isPasswordOK) return BadRequest("Must contain at least one number and one uppercase and lowercase letter, and at least 8 or more characters");
 
+                //create user
                 var userId = Guid.NewGuid().ToString();
                 var user = new ApplicationUser { UserId = userId, Email = model.Email, UserName = model.Email };
                 var result = await _userManager.CreateAsync(user, model.Password);
-                if (result.Succeeded)
+
+                if (!result.Succeeded)
                 {
-                    return Ok(new { message = "User registered successfully!" });
+                    var errorDescriptions = result.Errors.Select(x => x.Description).ToList();
+                    return BadRequest(String.Join(", ", errorDescriptions));
                 }
-                var errorDescriptions = result.Errors.Select(x => x.Description).ToList();
-                return BadRequest(String.Join(", ", errorDescriptions));
+
+                //give user role
+                if (!await _userManager.IsInRoleAsync(user, "User"))
+                {
+                    await _userManager.AddToRoleAsync(user, "User");
+                }
+
+                try
+                {
+                    //create customer
+                    var userCustomer = new Customer()
+                    {
+                        ApplicationUser = user,
+                        FirstName = "",
+                        LastName = "",
+                        PhoneNumber = "",
+                        Cart = new Cart(),
+                        ShippingAddress = new ShippingAddress() { City = "", Country = "", HouseNum = "", State = "", Street = "", ZipCode = "" },
+                        BillingAddress = new BillingAddress() { City = "", Country = "", HouseNum = "", State = "", Street = "", ZipCode = "" }
+                    };
+
+                    _userDbContext.Add(userCustomer);
+                    _userDbContext.SaveChanges();
+                }
+                catch (Exception)
+                {
+                    await _userManager.DeleteAsync(user);
+                    throw;
+                }
+                
+
+                return Ok(new { message = "User registered successfully!" });
+
             }
             catch (Exception ex)
             {
@@ -63,9 +100,14 @@ namespace OnlineShop.ApiService.Controllers
                 var user = await _userManager.FindByEmailAsync(model.Email);
                 if (user == null || !await _userManager.CheckPasswordAsync(user, model.Password))
                     return Unauthorized();
+                var userLocked = await _userManager.IsLockedOutAsync(user);
+                if (userLocked) return Unauthorized("The requesting user is locked.");
 
                 var roles = await _userManager.GetRolesAsync(user);
-                var token = _tokenService.GenerateToken(user.UserId, user.Email, roles);
+
+                var customer = _userDbContext.Customers.FirstOrDefault(x => x.ApplicationUser.UserId == user.UserId);
+
+                var token = _tokenService.GenerateToken(user.UserId, customer.Id, user.Email, roles);
 
                 return Ok(new { token });
             }

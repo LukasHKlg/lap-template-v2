@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using OnlineShop.ApiService.Services;
 using Microsoft.OpenApi.Models;
 using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
+using OnlineShop.ApiService.Repositories;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -24,6 +25,10 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 
 builder.Services.AddDbContext<UserDbContext>(options =>
         options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+
+builder.Services.AddScoped<CartRepository>();
+
 
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
 {
@@ -85,6 +90,8 @@ builder.Services.AddSwaggerGen(opt =>
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 
+builder.WebHost.UseWebRoot("wwwroot");
+
 var app = builder.Build();
 
 
@@ -96,8 +103,9 @@ try
 
     var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();
     var context = services.GetRequiredService<UserDbContext>();
+    var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
 
-    await SeedUsersAndCustomers.SeedUsersAndCustomersAsync(userManager, context);
+    await SeedUsersAndCustomers.SeedUsersAndCustomersAsync(userManager, roleManager, context);
 
 }
 catch (Exception ex)
@@ -123,6 +131,8 @@ app.UseHttpsRedirection();
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+app.UseStaticFiles();
 
 app.MapControllers();
 

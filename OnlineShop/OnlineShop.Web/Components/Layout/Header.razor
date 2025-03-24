@@ -3,7 +3,7 @@
 @inject NavigationManager NavigationManager
 
 <FluentHeader>
-	OnlineShop
+	<a class="header-title" href="/">OnlineShop</a>
 	<FluentSpacer />
 	<AuthorizeView>
 		<Authorized>
@@ -22,6 +22,9 @@
 	<FluentIcon Value="@(new Icons.Regular.Size20.Settings())"
 				Color="Color.Lightweight"
 				OnClick="@ShowSettingsAsync" />
+	<FluentIcon Value="@(new Icons.Regular.Size20.Cart())"
+				Color="Color.Lightweight"
+				OnClick="@(() => RedirectTo("cart"))" />
 </FluentHeader>
 
 @code {
@@ -40,3 +43,11 @@
 		NavigationManager.NavigateTo(path);
 	}
 }
+
+
+<style>
+	.header-title{
+		text-decoration: none;
+		color: unset;
+	}
+</style>

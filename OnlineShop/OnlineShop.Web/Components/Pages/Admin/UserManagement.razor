@@ -1,0 +1,256 @@
+﻿@page "/admin/users"
+@rendermode InteractiveServer
+
+@using OnlineShop.Shared.Models
+
+@attribute [Authorize(Roles = "Admin")]
+
+<PageTitle>Admin - Edit/Delete User</PageTitle>
+
+@inject CustomerApiClient CustomerApiClient
+@inject IToastService ToastService
+@inject NavigationManager NavManager
+@inject IConfiguration config
+@inject IDialogService DialogService
+@inject ILogger<UserManagement> _logger
+
+@if (customersPagination == null)
+{
+	<div>@currentStateMessageWithoutData</div>
+}
+else
+{
+	<FluentStack Orientation="Orientation.Vertical" HorizontalAlignment="HorizontalAlignment.Center">
+		<h1>Edit/Delete User</h1>
+
+		<FluentSearch Immediate="true" ImmediateDelay="800" Placeholder="Search for users/customers" @bind-Value="_searchValue" @bind-Value:after=HandleSearchInput Size="40" Appearance="FluentInputAppearance.Outline" />
+
+
+		<FluentDataGrid AutoFit="true" ResizableColumns=true Items="customersPagination.Items.AsQueryable()" RowSize="DataGridRowSize.Medium">
+			<PropertyColumn Property="@(p => p.Id)" Sortable="true" />
+			<PropertyColumn Property="@(p => p.Email)" Sortable="true" />
+			<TemplateColumn Title="Options">
+				<FluentStack Orientation="Orientation.Horizontal">
+					@if (context.isDisabled)
+					{
+						<div>Disabled User</div>
+					}
+					else
+					{
+						<FluentButton BackgroundColor="darkred" Type="ButtonType.Button" OnClick="@(() => DeleteAsync(context))"><FluentIcon Value="@(new Icons.Filled.Size20.Delete())" /></FluentButton>
+					}
+
+					@* <FluentButton BackgroundColor="green" Type="ButtonType.Button" OnClick="@(() => EditAsync(context))"><FluentIcon Value="@(new Icons.Filled.Size20.Edit())" /></FluentButton> *@
+				</FluentStack>
+			</TemplateColumn>
+			<TemplateColumn Title="Role">
+				<FluentStack Orientation="Orientation.Horizontal">
+					@if (context.isDisabled)
+					{
+						<div>Disabled User</div>
+					}
+					else if (context.HasApplicationUser)
+					{
+						<FluentMenuButton @ref=menubuttonRoles Text="@context.Roles.FirstOrDefault()" Items="Roles.SelectableRoles.Where(x => x != context.Roles.FirstOrDefault()).ToDictionary(x => Convert.ToString(context.Id), x=> x)" OnMenuChanged="RoleSelectionChanged"></FluentMenuButton>
+						@* <FluentSelect Label="Select Roles: " Items="Roles.SelectableRoles" Id="roles-listbox" Multiple=true SelectedOptionsChanged="@(EventCallback.Factory.Create<IEnumerable<string>>(this, RoleSelectionChanged))" Height="100%" /> *@
+					}
+				</FluentStack>
+			</TemplateColumn>
+		</FluentDataGrid>
+
+		@if (customersPagination.HasNextPage)
+		{
+			<FluentGridItem Justify="JustifyContent.Center" xs="12">
+				<FluentButton Appearance="Appearance.Lightweight" OnClick="LoadMoreCustomers">Load More</FluentButton>
+			</FluentGridItem>
+		}
+	</FluentStack>
+}
+
+
+@code {
+	private int pageIndex = 0;
+	private int pageSize = 20;
+	private string currentStateMessageWithoutData = "Loading ...";
+
+	private PaginatedList<CustomerDTO> customersPagination { get; set; }
+
+	private string? _searchValue;
+
+	private FluentMenuButton menubuttonRoles = new();
+
+	protected override async Task OnAfterRenderAsync(bool firstRender)
+	{
+		if (firstRender)
+		{
+			try
+			{
+				customersPagination = await CustomerApiClient.GetCustomersAsync(pageIndex + 1, pageSize);
+				pageIndex = customersPagination.PageIndex;
+			}
+			catch (Exception ex)
+			{
+				ToastService.ShowError("Error while loading customers. Please try again.");
+			}
+			StateHasChanged();
+		}
+
+		await base.OnAfterRenderAsync(firstRender);
+	}
+
+	private async Task LoadMoreCustomers()
+	{
+		var currentItems = customersPagination.Items;
+
+		var newProducts = await CustomerApiClient.GetCustomersAsync(pageIndex + 1, pageSize);
+		currentItems.AddRange(newProducts.Items);
+		newProducts.Items = currentItems.DistinctBy(i => i.Id).ToList();
+
+		customersPagination = newProducts;
+
+		pageIndex = customersPagination.PageIndex;
+
+		StateHasChanged();
+	}
+
+	private async Task HandleSearchInput()
+	{
+		try
+		{
+			if (string.IsNullOrEmpty(_searchValue))
+			{
+				customersPagination = await CustomerApiClient.GetCustomersAsync(pageSize: pageSize);
+				pageIndex = customersPagination.PageIndex;
+			}
+			else
+			{
+				customersPagination = await CustomerApiClient.GetCustomersForSearchAsync(_searchValue ?? "", pageSize: pageSize);
+				pageIndex = customersPagination.PageIndex;
+			}
+
+		}
+		catch (HttpRequestException ex)
+		{
+			if (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+			{
+				ToastService.ShowInfo("Nothing Found for that search");
+				//currentStateMessageWithoutData = "Nothing Found for that search";
+			}
+			else ToastService.ShowError("There has been an error searching for a product.");
+		}
+		catch (Exception)
+		{
+
+			throw;
+		}
+	}
+
+	private void RedirectTo(string path)
+	{
+		NavManager.NavigateTo(path);
+	}
+
+	// private async Task EditAsync(CustomerDTO selectedProduct)
+	// {
+	// 	try
+	// 	{
+	// 		var dialog = await DialogService.ShowDialogAsync<ProductEditDialog>(selectedProduct, new DialogParameters()
+	// 			{
+	// 				PreventDismissOnOverlayClick = true,
+	// 				Title = $"Updating the data for {selectedProduct.Name}",
+	// 			});
+
+	// 		var result = await dialog.Result;
+	// 		if (!result.Cancelled && result.Data != null)
+	// 		{
+	// 			var resultData = result.Data;
+	// 			selectedProduct = (ProductDTO)resultData;
+
+	// 			//save edited data to db
+	// 			var updateSuccess = await ProductApiClient.UpdateProduct(selectedProduct);
+	// 			if (updateSuccess) await DialogService.ShowSuccessAsync($"You updated product {selectedProduct.Name}");
+	// 			else await DialogService.ShowErrorAsync($"Your update for product {selectedProduct.Name} was not successfull");
+	// 		}
+	// 	}
+	// 	catch (UnauthorizedAccessException ex)
+	// 	{
+	// 		ToastService.ShowError("Unauthorized. Please Login again!");
+	// 		NavManager.NavigateTo("/logout");
+	// 	}
+	// 	catch (Exception ex)
+	// 	{
+	// 		ToastService.ShowError("The product could not be updated. Please try again!");
+	// 		_logger.LogError("Error while udpating product. Error: " + ex.ToString());
+	// 	}
+	// }
+
+	private async Task DeleteAsync(CustomerDTO selectedCustomer)
+	{
+		try
+		{
+			var dialog = await DialogService.ShowDialogAsync(@<div>Are you shure you want to disable the user @(selectedCustomer.FirstName+ " " + selectedCustomer.LastName)?</div>, new DialogParameters
+																																										  {
+																																											  Title = "Disable and Anonymize User",
+																																										  });
+
+			var result = await dialog.Result;
+			if (!result.Cancelled)
+			{
+				var delteSuccess = await CustomerApiClient.DeleteCustomer(selectedCustomer);
+
+				if (delteSuccess)
+				{
+					await DialogService.ShowSuccessAsync($"You disabled and anonymized {selectedCustomer.FirstName + " " + selectedCustomer.LastName}");
+				}
+				else await DialogService.ShowErrorAsync($"Your deletion of customer {selectedCustomer.FirstName + " " + selectedCustomer.LastName} was not successfull!");
+
+				customersPagination.Items = customersPagination.Items.Where(x => x.Id != selectedCustomer.Id).ToList();
+			}
+		}
+		catch (UnauthorizedAccessException ex)
+		{
+			ToastService.ShowError("Unauthorized. Please Login again!");
+			NavManager.NavigateTo("/logout");
+		}
+		catch (Exception ex)
+		{
+			ToastService.ShowError("The customer could not be deleted. Please try again!");
+			_logger.LogError("Error while deleting customer. Error: " + ex.ToString());
+		}
+	}
+
+	private async Task RoleSelectionChanged(MenuChangeEventArgs args)
+	{
+		try
+		{
+			//id is userid
+			//value is role to add
+			var customerToUpdate = customersPagination.Items.FirstOrDefault(x => x.Id == Convert.ToInt32(args.Id));
+			if (customerToUpdate == null)
+			{
+				ToastService.ShowError("Updating users role did not work!");
+				return;
+			}
+			var newcustomerToUpdateRoles = customerToUpdate.Roles.ToList();
+			newcustomerToUpdateRoles.Add(args.Value);
+			customerToUpdate.Roles = newcustomerToUpdateRoles;
+
+			var successUpdate = await CustomerApiClient.UpdateCustomer(customerToUpdate);
+			if (!successUpdate) ToastService.ShowError("User role was not updated");
+			else{
+				ToastService.ShowSuccess($"Update role for user {customerToUpdate.Id} was successfull. Reload page to see update.");
+			}
+		}
+		catch (UnauthorizedAccessException ex)
+		{
+			ToastService.ShowError("Unauthorized. Please Login again!");
+			NavManager.NavigateTo("/logout");
+		}
+		catch (Exception ex)
+		{
+			ToastService.ShowError("The customer could not be updated. Please try again!");
+			_logger.LogError("Error while updating customer. Error: " + ex.ToString());
+		}
+
+	}
+}

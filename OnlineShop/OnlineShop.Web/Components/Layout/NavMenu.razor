@@ -1,4 +1,5 @@
-﻿@rendermode InteractiveServer
+﻿@using OnlineShop.Shared.Models
+@rendermode InteractiveServer
 
 <div class="navmenu">
     <input type="checkbox" title="Menu expand/collapse toggle" id="navmenu-toggle" class="navmenu-icon" />
@@ -6,8 +7,18 @@
     <nav class="sitenav" aria-labelledby="main-menu">
         <FluentNavMenu Id="main-menu" Collapsible="true" Width="250" Title="Navigation menu" @bind-Expanded="expanded" CustomToggle="true">
             <FluentNavLink Href="/" Match="NavLinkMatch.All" Icon="@(new Icons.Regular.Size20.ShoppingBag())" IconColor="Color.Accent">Shop</FluentNavLink>
-            <FluentNavLink Href="counter" Icon="@(new Icons.Regular.Size20.Cart())" IconColor="Color.Accent">Shopping Cart</FluentNavLink>
-            <FluentNavLink Href="weather" Icon="@(new Icons.Regular.Size20.Person())" IconColor="Color.Accent">Account</FluentNavLink>
+            <FluentNavLink Href="/cart" Icon="@(new Icons.Regular.Size20.Cart())" IconColor="Color.Accent">Shopping Cart</FluentNavLink>
+            <FluentNavGroup Expanded="false" Title="Account" Icon="@(new Icons.Regular.Size20.Person())" IconColor="Color.Accent">
+                <FluentNavLink Href="/user" Icon="@(new Icons.Regular.Size20.PersonAccounts())" IconColor="Color.Accent">Profile</FluentNavLink>
+                <FluentNavLink Href="/user" Icon="@(new Icons.Regular.Size20.AppsList())" IconColor="Color.Accent">My Orders</FluentNavLink>
+            </FluentNavGroup>
+            <AuthorizeView Roles="@Roles.Admin">
+                <FluentNavGroup Expanded="false" Title="Admin" Icon="@(new Icons.Regular.Size20.EditPerson())" IconColor="Color.Accent">
+                    <FluentNavLink Href="/admin/products/add" Icon="@(new Icons.Regular.Size20.Add())" IconColor="Color.Accent">Add Product</FluentNavLink>
+                    <FluentNavLink Href="/admin/products/editdelete" Icon="@(new Icons.Regular.Size20.Edit())" IconColor="Color.Accent">Edit/Delete Product</FluentNavLink>
+                    <FluentNavLink Href="/admin/users" Icon="@(new Icons.Regular.Size20.AppsListDetail())" IconColor="Color.Accent">User Management</FluentNavLink>
+                </FluentNavGroup>
+            </AuthorizeView>
         </FluentNavMenu>
     </nav>
 </div>

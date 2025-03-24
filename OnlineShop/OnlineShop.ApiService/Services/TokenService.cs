@@ -14,7 +14,7 @@ namespace OnlineShop.ApiService.Services
             _config = config;
         }
 
-        public string GenerateToken(string userId, string email, IList<string> roles)
+        public string GenerateToken(string userId, int id, string email, IList<string> roles)
         {
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["Jwt:Key"]));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
@@ -22,6 +22,7 @@ namespace OnlineShop.ApiService.Services
             var claims = new List<Claim>
             {
                 new Claim(JwtRegisteredClaimNames.Sub, userId),
+                new Claim(JwtRegisteredClaimNames.NameId, Convert.ToString(id)),
                 new Claim(JwtRegisteredClaimNames.Email, email),
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
             };
@@ -35,7 +36,7 @@ namespace OnlineShop.ApiService.Services
                 issuer: _config["Jwt:Issuer"],
                 audience: _config["Jwt:Issuer"],
                 claims: claims,
-                expires: DateTime.UtcNow.AddHours(1),
+                expires: DateTime.UtcNow.AddMinutes(120),
                 signingCredentials: creds
                 );
 

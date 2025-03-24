@@ -1,0 +1,150 @@
+﻿@page "/product/{id}"
+
+@using Microsoft.AspNetCore.Mvc
+
+@rendermode InteractiveServer
+
+@inject ProductApiClient ProductApiClient
+@inject CartApiClient CartApiClient
+@inject IToastService ToastService
+@inject ILogger<ProductDetails> _logger
+@inject AuthenticationStateProvider AuthStateProvider
+@inject NavigationManager NavManager
+@inject IConfiguration config
+
+<PageTitle>Product Details</PageTitle>
+
+<FluentStack Wrap="true" Orientation="Orientation.Horizontal" Class="prod-details" HorizontalAlignment="HorizontalAlignment.Start" HorizontalGap="30" VerticalGap="30">
+	@if (product == null)
+	{
+		@currentStateMessageWithoutData
+	}
+	else
+	{
+		<FluentStack Width="25rem" Orientation="Orientation.Vertical" HorizontalAlignment="HorizontalAlignment.Start" >
+			<img class="prod-details-img" src="@(Helpers.GetPictureUrl(product.Id + ".jpg", config))" />
+		</FluentStack>
+		<FluentStack Width="60rem" Orientation="Orientation.Vertical" HorizontalAlignment="HorizontalAlignment.Start">
+			<div class="prod-details-name">@product.Name</div>
+
+			<div class="prod-details-price">@product.Price €</div>
+
+			<div class="prod-details-description">@product.Description</div>
+
+			<div class="prod-details-label">Category</div>
+			<div class="prod-details-category">@product.Category</div>
+
+			<div class="prod-details-label">Manufacturer</div>
+			<div class="prod-details-manufacturer">@product.Manufacturer</div>
+		</FluentStack>
+		<FluentStack Width="20rem" Orientation="Orientation.Vertical" HorizontalAlignment="HorizontalAlignment.Start">
+			<FluentStack Orientation="Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center">
+				<FluentStack Width="7rem" Orientation="Orientation.Vertical">
+					<div class="prod-details-label">Price</div>
+					<div class="prod-details-price">@product.Price €</div>
+				</FluentStack>
+				<FluentButton OnClick="@(() => AddToCart(product))" Disabled="product.Stock <= 0" Appearance="Appearance.Accent" IconEnd="@(new Icons.Filled.Size20.Cart())">Add to Cart</FluentButton>
+			</FluentStack>
+
+			<div class="prod-details-label">Stock</div>
+			<div class="prod-details-stock">@(product.Stock > 0 ? "This product is in stock!" : "This product is not in stock!")</div>
+
+			<div class="prod-details-label">Internal ID</div>
+			<div class="prod-details-id">@product.Id</div>
+		</FluentStack>
+	}
+</FluentStack>
+
+<style>
+	.prod-details{
+	margin-top: 2rem;
+	padding-bottom: 2rem;
+	font-size: 1.2rem;
+	}
+	.prod-details-img{
+	height: 20rem;
+	width: 100%;
+	object-fit: contain;
+	}
+	.prod-details-name{
+	font-size: 3.5rem;
+	line-height: 4rem;
+	margin-bottom: .5rem;
+	}
+
+	.prod-details-description {
+	font-size: 1.8rem;
+	height: contain;
+	line-height: 2rem;
+	margin-bottom: .5rem;
+	}
+
+	.prod-details-category {
+	}
+	.prod-details-manufacturer{
+
+	}
+	.prod-details-id{
+
+	}
+	.prod-details-stock{
+
+	}
+
+	.prod-details-price {
+	font-size: 1.5rem;
+	line-height: 1.6rem;
+	}
+
+	.prod-details-label{
+	opacity: 75%;
+	font-size: 1rem;
+	margin-bottom: -0.5rem;
+	}
+
+</style>
+
+
+@code {
+	[Parameter]
+	public string Id { get; set; }
+
+	private ProductDTO product { get; set; }
+
+	private string currentStateMessageWithoutData = "Loading ...";
+
+	protected override async Task OnInitializedAsync()
+	{
+		try
+		{
+			product = await ProductApiClient.GetProductDetailsAsync(Convert.ToInt32(Id));
+		}
+		catch (HttpRequestException ex)
+		{
+			if (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+			{
+				currentStateMessageWithoutData = "Nothing Found for that product.";
+				ToastService.ShowInfo("Nothing Found for that product.");
+				_logger.LogError($"404 from API. Product details not found for id {Id}. Error: " + ex.ToString());
+			}
+			else ToastService.ShowError("There has been an error searching for a product.");
+		}
+		catch (Exception ex)
+		{
+			_logger.LogError("Error while loading the products detail. Error: " + ex.ToString());
+			ToastService.ShowError("Error while loading the products details. Please try again.");
+		}
+	}
+
+	private async Task AddToCart(ProductDTO newProduct)
+	{
+		var user = await AuthStateProvider.GetAuthenticationStateAsync();
+
+		if (user == null || !user.User.Identity.IsAuthenticated){
+			NavManager.NavigateTo("login");
+			return;
+		}
+
+		var successfullyAdded = await CartApiClient.AddProductToCart(newProduct);
+	}
+}

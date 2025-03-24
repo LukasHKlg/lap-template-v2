@@ -1,0 +1,200 @@
+﻿@rendermode InteractiveServer
+@page "/admin/products/editdelete"
+@using OnlineShop.Shared.Models
+
+@attribute [Authorize(Roles = "Admin")]
+
+<PageTitle>Admin - Edit/Delete Product</PageTitle>
+
+@inject ProductApiClient ProductApiClient
+@inject IToastService ToastService
+@inject NavigationManager NavManager
+@inject IConfiguration config
+@inject IDialogService DialogService
+@inject ILogger<EditDelete> _logger
+
+	@if (productsPagination == null)
+{
+	<div>@currentStateMessageWithoutData</div>
+}
+else
+{
+
+
+	<FluentStack Orientation="Orientation.Vertical" HorizontalAlignment="HorizontalAlignment.Center">
+		<h1>Edit/Delete Product</h1>
+
+		<FluentSearch Immediate="true" ImmediateDelay="800" Placeholder="Search for products" @bind-Value="_searchValue" @bind-Value:after=HandleSearchInput Size="40" Appearance="FluentInputAppearance.Outline" />
+
+
+		<FluentDataGrid AutoFit="true" ResizableColumns=true Items="productsPagination.Items.AsQueryable()" RowSize="DataGridRowSize.Medium">
+			<PropertyColumn Property="@(p => p.Id)" Sortable="true" />
+			<PropertyColumn Property="@(p => p.Name)" Sortable="true" />
+			<TemplateColumn Title="Options">
+				<FluentStack Orientation="Orientation.Horizontal">
+					<FluentButton BackgroundColor="darkred" Type="ButtonType.Button" OnClick="@(() => DeleteAsync(context))"><FluentIcon Value="@(new Icons.Filled.Size20.Delete())" /></FluentButton>
+					<FluentButton BackgroundColor="green" Type="ButtonType.Button" OnClick="@(() => EditAsync(context))"><FluentIcon Value="@(new Icons.Filled.Size20.Edit())" /></FluentButton>
+				</FluentStack>
+			</TemplateColumn>
+		</FluentDataGrid>
+
+		@if (productsPagination.HasNextPage)
+		{
+			<FluentGridItem Justify="JustifyContent.Center" xs="12">
+				<FluentButton Appearance="Appearance.Lightweight" OnClick="LoadMoreProducts">Load More</FluentButton>
+			</FluentGridItem>
+		}
+	</FluentStack>
+}
+
+
+@code {
+	private int pageIndex = 0;
+	private int pageSize = 20;
+	private string currentStateMessageWithoutData = "Loading ...";
+
+	private PaginatedList<ProductDTO> productsPagination { get; set; }
+
+	private string? _searchValue;
+
+	protected override async Task OnAfterRenderAsync(bool firstRender)
+	{
+		if (firstRender)
+		{
+			try
+			{
+				productsPagination = await ProductApiClient.GetProductsAsync(pageIndex + 1, pageSize);
+				pageIndex = productsPagination.PageIndex;
+			}
+			catch (Exception ex)
+			{
+				ToastService.ShowError("Error while loading the products. Please try again.");
+			}
+			StateHasChanged();
+		}
+
+		await base.OnAfterRenderAsync(firstRender);
+	}
+
+	private async Task LoadMoreProducts()
+	{
+		var currentItems = productsPagination.Items;
+
+		var newProducts = await ProductApiClient.GetProductsAsync(pageIndex + 1, pageSize);
+		currentItems.AddRange(newProducts.Items);
+		newProducts.Items = currentItems.DistinctBy(i => i.Id).ToList();
+
+		productsPagination = newProducts;
+
+		pageIndex = productsPagination.PageIndex;
+
+		StateHasChanged();
+	}
+
+	private async Task HandleSearchInput()
+	{
+		try
+		{
+			if (string.IsNullOrEmpty(_searchValue))
+			{
+				productsPagination = await ProductApiClient.GetProductsAsync(pageSize: pageSize);
+				pageIndex = productsPagination.PageIndex;
+			}
+			else
+			{
+				productsPagination = await ProductApiClient.GetProductsForSearchAsync(_searchValue ?? "", pageSize: pageSize);
+				pageIndex = productsPagination.PageIndex;
+			}
+
+		}
+		catch (HttpRequestException ex)
+		{
+			if (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+			{
+				ToastService.ShowInfo("Nothing Found for that search");
+				//currentStateMessageWithoutData = "Nothing Found for that search";
+			}
+			else ToastService.ShowError("There has been an error searching for a product.");
+		}
+		catch (Exception)
+		{
+
+			throw;
+		}
+	}
+
+	private void RedirectTo(string path)
+	{
+		NavManager.NavigateTo(path);
+	}
+
+	private async Task EditAsync(ProductDTO selectedProduct)
+	{
+		try
+		{
+			var dialog = await DialogService.ShowDialogAsync<ProductEditDialog>(selectedProduct, new DialogParameters()
+				{
+					PreventDismissOnOverlayClick = true,
+					Title = $"Updating the data for {selectedProduct.Name}",
+				});
+
+			var result = await dialog.Result;
+			if (!result.Cancelled && result.Data != null)
+			{
+				var resultData = result.Data;
+				selectedProduct = (ProductDTO)resultData;
+
+				//save edited data to db
+				var updateSuccess = await ProductApiClient.UpdateProduct(selectedProduct);
+				if (updateSuccess) await DialogService.ShowSuccessAsync($"You updated product {selectedProduct.Name}");
+				else await DialogService.ShowErrorAsync($"Your update for product {selectedProduct.Name} was not successfull");
+			}
+		}
+		catch (UnauthorizedAccessException ex)
+		{
+			ToastService.ShowError("Unauthorized. Please Login again!");
+			NavManager.NavigateTo("/logout");
+		}
+		catch (Exception ex)
+		{
+			ToastService.ShowError("The product could not be updated. Please try again!");
+			_logger.LogError("Error while udpating product. Error: " + ex.ToString());
+		}
+	}
+
+	private async Task DeleteAsync(ProductDTO selectedProduct)
+	{
+		try
+		{
+			var dialog = await DialogService.ShowDialogAsync(@<div>Are you shure you want to delete @(selectedProduct.Name)?</div>, new DialogParameters
+																														{
+																															Title = "Delete Product",
+																														});
+
+			var result = await dialog.Result;
+			if (!result.Cancelled)
+			{
+				var delteSuccess = await ProductApiClient.DeleteProduct(selectedProduct);
+
+				if (delteSuccess)
+				{
+					var deleteProductPictureSuccess = await ProductApiClient.DeleteProductPicture(selectedProduct);
+					await DialogService.ShowSuccessAsync($"You deleted product {selectedProduct.Name}");
+				}
+				else await DialogService.ShowErrorAsync($"Your deletion of product {selectedProduct.Name} was not successfull");
+
+				productsPagination.Items = productsPagination.Items.Where(x => x.Id != selectedProduct.Id).ToList();
+			}
+		}
+		catch (UnauthorizedAccessException ex)
+		{
+			ToastService.ShowError("Unauthorized. Please Login again!");
+			NavManager.NavigateTo("/logout");
+		}
+		catch (Exception ex)
+		{
+			ToastService.ShowError("The product could not be deleted. Please try again!");
+			_logger.LogError("Error while deleting product. Error: " + ex.ToString());
+		}
+	}
+}

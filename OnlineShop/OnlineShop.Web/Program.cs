@@ -35,7 +35,7 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
     {
         //options.Cookie.Expiration = TimeSpan.FromMinutes(120);
         options.Cookie.Name = "AuthTokenCookie";
-        options.ExpireTimeSpan = TimeSpan.FromMinutes(1);
+        options.ExpireTimeSpan = TimeSpan.FromMinutes(120);
         options.LoginPath = "/login";
     });
 
@@ -49,6 +49,8 @@ builder.Services.AddHttpClient("ApiClient", client =>
 
 builder.Services.AddScoped<WeatherApiClient>();
 builder.Services.AddScoped<ProductApiClient>();
+builder.Services.AddScoped<CartApiClient>();
+builder.Services.AddScoped<CustomerApiClient>();
 
 var app = builder.Build();
 

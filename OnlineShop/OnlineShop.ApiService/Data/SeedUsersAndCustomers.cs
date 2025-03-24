@@ -1,13 +1,24 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using OnlineShop.ApiService.Models;
+using OnlineShop.Shared.Models;
 
 namespace OnlineShop.ApiService.Data
 {
     public class SeedUsersAndCustomers
     {
-        public static async Task SeedUsersAndCustomersAsync(UserManager<ApplicationUser> userManager, UserDbContext context)
+        public static async Task SeedUsersAndCustomersAsync(UserManager<ApplicationUser> userManager, RoleManager<IdentityRole> roleManager, UserDbContext context)
         {
+            #region Roles
+            foreach (var role in Roles.SelectableRoles)
+            {
+                if (!await roleManager.RoleExistsAsync(role))
+                {
+                    await roleManager.CreateAsync(new IdentityRole(role));
+                }
+            }
+            #endregion Roles
+
             #region AdminUser
             var adminuser = await userManager.FindByEmailAsync("admin@example.com");
             if (adminuser == null)
@@ -25,6 +36,10 @@ namespace OnlineShop.ApiService.Data
                 {
                     throw new Exception("Failed to create user: " + string.Join(", ", result.Errors.Select(e => e.Description)));
                 }
+            }
+            if (!await userManager.IsInRoleAsync(adminuser, Roles.Admin))
+            {
+                await userManager.AddToRoleAsync(adminuser, Roles.Admin);
             }
 
             // Now update or seed the Customer record with this ApplicationUser's id.
@@ -78,6 +93,10 @@ namespace OnlineShop.ApiService.Data
                     throw new Exception("Failed to create user: " + string.Join(", ", result.Errors.Select(e => e.Description)));
                 }
             }
+            if (!await userManager.IsInRoleAsync(customeruser1, Roles.User))
+            {
+                await userManager.AddToRoleAsync(customeruser1, Roles.User);
+            }
 
             // Now update or seed the Customer record with this ApplicationUser's id.
             if (!context.Customers.Any(x => x.ApplicationUser.Id == customeruser1.Id))
@@ -127,6 +146,10 @@ namespace OnlineShop.ApiService.Data
                 {
                     throw new Exception("Failed to create user: " + string.Join(", ", result.Errors.Select(e => e.Description)));
                 }
+            }
+            if (!await userManager.IsInRoleAsync(customeruser2, Roles.User))
+            {
+                await userManager.AddToRoleAsync(customeruser2, Roles.User);
             }
 
             // Now update or seed the Customer record with this ApplicationUser's id.

@@ -1,0 +1,116 @@
+﻿@page "/cart"
+
+@rendermode InteractiveServer
+
+@inject CartApiClient CartApiClient
+@inject NavigationManager NavManager
+@inject IToastService ToastService
+@inject ILogger<Cart> _logger
+
+@attribute [Authorize]
+
+<PageTitle>Shopping Cart</PageTitle>
+
+<FluentStack Orientation="Orientation.Vertical">
+	<FluentStack><h1>Your Cart</h1></FluentStack>
+	<FluentStack>
+		<FluentDataGrid AutoFit="true" Items="cartItems" ColumnResizeLabels="ColumnResizeLabels.Default" TGridItem="CartItemDTO" ResizableColumns="true" OnCellClick="HandleCellClick" RowSize="DataGridRowSize.Medium">
+			<PropertyColumn Style="cursor: pointer;" Property="@(p => p.Product.Name)" Sortable="true" />
+			<PropertyColumn Property="@(p => p.Product.Description)" Sortable="true" Width="15rem" />
+			<PropertyColumn Property="@(p => p.Product.Manufacturer)" Sortable="true" />
+			<PropertyColumn Property="@(p => p.Product.Price)" Sortable="true" />
+			<PropertyColumn Property="@(p => p.Price)" Sortable="true" />
+			<TemplateColumn Width="9%" Title="Quantity">
+				<FluentStack Orientation="Orientation.Horizontal">
+					<FluentButton Style="height: 100%;" Appearance="Appearance.Outline" OnClick="(() => UpdateQuantity(context, -1))"><FluentIcon Value="@(new Icons.Regular.Size20.Subtract())" /></FluentButton>
+					<div>@context.Quantity</div>
+					<FluentButton Style="height: 100%;" Appearance="Appearance.Outline" OnClick="(() => UpdateQuantity(context, 1))"><FluentIcon Value="@(new Icons.Regular.Size20.Add())" /></FluentButton>
+				</FluentStack>
+			</TemplateColumn>
+			<TemplateColumn Width="4%">
+				<FluentButton Style="height: 100%;" Appearance="Appearance.Outline" OnClick="(() => DeleteItem(context))"><FluentIcon Value="@(new Icons.Regular.Size20.Delete())" /></FluentButton>
+			</TemplateColumn>
+		</FluentDataGrid>
+	</FluentStack>
+</FluentStack>
+
+@code {
+	private CartDTO cart { get; set; }
+	private IQueryable<CartItemDTO> cartItems { get; set; }
+
+	protected override async Task OnInitializedAsync()
+	{
+		try
+		{
+			cart = await CartApiClient.GetCartDetailsAsync();
+			cartItems = cart.CartItems.AsQueryable();
+		}
+		catch (Exception ex)
+		{
+			ToastService.ShowError("Error while getting your cart details. Please try again!");
+			_logger.LogError(ex.ToString());
+		}
+	}
+
+	private void HandleCellClick(FluentDataGridCell<CartItemDTO> cell)
+	{
+		if (cell.GridColumn == 1)
+		{
+			RedirectTo($"product/{cell.Item.Product.Id}");
+		}
+	}
+
+	private async Task UpdateQuantity(CartItemDTO itemToUpdate, int value)
+	{
+		if(itemToUpdate.Quantity + value <= 0)
+		{
+			ToastService.ShowInfo("Quantity can't be less than 1!");
+			return;
+		}
+
+		try
+		{
+			itemToUpdate.Quantity += value;
+			itemToUpdate.Price += (itemToUpdate.Product.Price * value);
+			bool wasSuccessUpdate = await CartApiClient.UpdateQuantity(itemToUpdate);
+
+			if (!wasSuccessUpdate)
+			{
+				ToastService.ShowError($"Quantity for item {itemToUpdate.Product.Name} was not updated. Please try again!");
+				itemToUpdate.Quantity -= value;
+			}
+		}
+		catch (Exception ex)
+		{
+			ToastService.ShowError("Error while updating item quantity for your cart. Please try again!");
+			_logger.LogError(ex.ToString());
+		}
+	}
+
+	private async Task DeleteItem(CartItemDTO itemToDelete)
+	{
+		try
+		{
+			bool wasSuccessDelete = await CartApiClient.DeleteProductFromCart(itemToDelete);
+
+			if (wasSuccessDelete)
+			{
+				ToastService.ShowSuccess($"Item {itemToDelete.Product.Name} removed from Cart.");
+				cartItems = cartItems.Where(x => x.Id != itemToDelete.Id);
+
+			}
+			else ToastService.ShowError($"Item {itemToDelete.Product.Name} was not removed. Please try again!");
+		}
+		catch (Exception ex)
+		{
+			ToastService.ShowError("Error while removing item from your cart. Please try again!");
+			_logger.LogError(ex.ToString());
+		}
+	}
+
+
+	private void RedirectTo(string path)
+	{
+		NavManager.NavigateTo(path);
+	}
+}

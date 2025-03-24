@@ -7,26 +7,65 @@ using OnlineShop.Web.Services;
 
 namespace OnlineShop.Web.ApiClients;
 
-public class ProductApiClient
+public class CustomerApiClient
 {
     private HttpClient _httpClient;
     private readonly IHttpContextAccessor _httpContextAccessor;
 
-    public ProductApiClient(IHttpClientFactory httpClientFactory, IHttpContextAccessor httpContextAccessor)
+    public CustomerApiClient(IHttpClientFactory httpClientFactory, IHttpContextAccessor httpContextAccessor)
     {
         _httpClient = httpClientFactory.CreateClient("ApiClient");
         _httpContextAccessor = httpContextAccessor;
     }
 
-    public async Task<PaginatedList<ProductDTO>> GetProductsAsync(int pageIndex = 1, int pageSize = 20, CancellationToken cancellationToken = default)
+    public async Task<PaginatedList<CustomerDTO>> GetCustomersAsync(int pageIndex = 1, int pageSize = 20, CancellationToken cancellationToken = default)
     {
         try
         {
-            PaginatedList<ProductDTO>? products = null;
+            Helpers.GetUserAuthToken(_httpContextAccessor.HttpContext, ref _httpClient);
 
-            string requestUrl = $"/api/products?pageIndex={pageIndex}&pageSize={pageSize}";
+            string requestUrl = $"/api/customers?pageIndex={pageIndex}&pageSize={pageSize}";
 
-            var response = await _httpClient.GetFromJsonAsync<PaginatedList<ProductDTO>>(requestUrl);
+            var response = await _httpClient.GetFromJsonAsync<PaginatedList<CustomerDTO>>(requestUrl);
+
+            return response;
+        }
+        catch (Exception ex)
+        {
+            //TODO what if exception is becaus of unauthorized?
+            throw;
+        }
+
+    }
+
+    public async Task<PaginatedList<CustomerDTO>> GetCustomersForSearchAsync(string searchValue, int pageIndex = 1, int pageSize = 20, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            Helpers.GetUserAuthToken(_httpContextAccessor.HttpContext, ref _httpClient);
+
+            string requestUrl = $"/api/customers/search?pageIndex={pageIndex}&pageSize={pageSize}&searchValue={searchValue}";
+
+            var response = await _httpClient.GetFromJsonAsync<PaginatedList<CustomerDTO>>(requestUrl);
+
+            return response;
+        }
+        catch (Exception ex)
+        {
+            //TODO what if exception is becaus of unauthorized?
+            throw;
+        }
+    }
+
+    public async Task<CustomerDTO> GetCustomerDetailsAsync(int customerId, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            Helpers.GetUserAuthToken(_httpContextAccessor.HttpContext, ref _httpClient);
+
+            string requestUrl = $"/api/customers/{customerId}";
+
+            var response = await _httpClient.GetFromJsonAsync<CustomerDTO>(requestUrl);
 
             return response;
         }
@@ -34,47 +73,9 @@ public class ProductApiClient
         {
             throw;
         }
-
-    }
-
-    public async Task<PaginatedList<ProductDTO>> GetProductsForSearchAsync(string searchValue, int pageIndex = 1, int pageSize = 20, CancellationToken cancellationToken = default)
-    {
-        try
-        {
-            PaginatedList<ProductDTO>? products = null;
-
-            string requestUrl = $"/api/products/search?pageIndex={pageIndex}&pageSize={pageSize}&searchValue={searchValue}";
-
-            var response = await _httpClient.GetFromJsonAsync<PaginatedList<ProductDTO>>(requestUrl);
-
-            return response;
-        }
-        catch (Exception ex)
-        {
-            throw;
-        }
-
-    }
-
-    public async Task<ProductDTO> GetProductDetailsAsync(int productId, CancellationToken cancellationToken = default)
-    {
-        try
-        {
-            string requestUrl = $"/api/products/{productId}";
-
-            var response = await _httpClient.GetFromJsonAsync<ProductDTO>(requestUrl);
-
-            return response;
-        }
-        catch (Exception ex)
-        {
-            throw;
-        }
-
     }
 
 
-    #region ProductAdmin
     public async Task<ProductDTO> AddNewProductAsync(ProductDTO newProduct, CancellationToken cancellationToken = default)
     {
         try
@@ -121,13 +122,13 @@ public class ProductApiClient
         }
     }
 
-    public async Task<bool> DeleteProduct(ProductDTO productToDelete, CancellationToken cancellationToken = default)
+    public async Task<bool> DeleteCustomer(CustomerDTO customerToDelete, CancellationToken cancellationToken = default)
     {
         try
         {
             Helpers.GetUserAuthToken(_httpContextAccessor.HttpContext, ref _httpClient);
 
-            string requestUrl = $"/api/products/{productToDelete.Id}";
+            string requestUrl = $"/api/customers/{customerToDelete.Id}";
 
             var response = await _httpClient.DeleteAsync(requestUrl);
 
@@ -163,15 +164,15 @@ public class ProductApiClient
         }
     }
 
-    public async Task<bool> UpdateProduct(ProductDTO productToUpdate, CancellationToken cancellationToken = default)
+    public async Task<bool> UpdateCustomer(CustomerDTO customerToUpdate, CancellationToken cancellationToken = default)
     {
         try
         {
             Helpers.GetUserAuthToken(_httpContextAccessor.HttpContext, ref _httpClient);
 
-            string requestUrl = $"/api/products/{productToUpdate.Id}";
+            string requestUrl = $"/api/customers/{customerToUpdate.Id}";
 
-            var response = await _httpClient.PutAsJsonAsync<ProductDTO>(requestUrl, productToUpdate, cancellationToken);
+            var response = await _httpClient.PutAsJsonAsync<CustomerDTO>(requestUrl, customerToUpdate);
 
             if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized) throw new UnauthorizedAccessException("Unauthorized Access: " + response.StatusCode);
 
@@ -188,5 +189,4 @@ public class ProductApiClient
     {
         public string FileUrl { get; set; }
     }
-    #endregion ProductAdmin
 }

@@ -7,7 +7,7 @@ namespace OnlineShop.Web.ApiClients;
 
 public class WeatherApiClient
 {
-    private readonly HttpClient _httpClient;
+    private HttpClient _httpClient;
     private readonly IHttpContextAccessor _httpContextAccessor;
 
     public WeatherApiClient(IHttpClientFactory httpClientFactory, IHttpContextAccessor httpContextAccessor)
@@ -20,16 +20,7 @@ public class WeatherApiClient
     {
         try
         {
-            // Retrieve the JWT token from the current user's claims.
-            var token = _httpContextAccessor.HttpContext?.User.FindFirst("access_token")?.Value;
-            if (!string.IsNullOrEmpty(token))
-            {
-                _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-            }
-            else
-            {
-                throw new Exception("No access token found.");
-            }
+            Helpers.GetUserAuthToken(_httpContextAccessor.HttpContext, ref _httpClient);
 
             List<WeatherForecastDTO>? forecasts = null;
 
