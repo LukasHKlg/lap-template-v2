@@ -55,7 +55,15 @@ namespace OnlineShop.ApiService.Controllers
             {
                 return BadRequest();
             }
-                
+
+            ////update cart price
+            //var cart = await _context.Carts.FindAsync(cartItem.Cart.Id);
+            //if(cart != null)
+            //{
+            //    cart.TotalPrice -= cartItem.Product.Price;
+            //}
+
+            _context.Entry(cartItem.Cart).State = EntityState.Modified;
             _context.Entry(cartItem).State = EntityState.Modified;
 
             try
@@ -142,6 +150,7 @@ namespace OnlineShop.ApiService.Controllers
                 _context.Entry(cartItem).State = EntityState.Modified;
             }
 
+            user.Cart.TotalPrice = _context.CartItems.Where(x => x.Cart.Id == user.Cart.Id).Select(x => x.Price).Sum() + newProduct.Price;
                 
             await _context.SaveChangesAsync();
 
@@ -155,10 +164,16 @@ namespace OnlineShop.ApiService.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteCartItem(int id)
         {
-            var cartItem = await _context.CartItems.FindAsync(id);
+            var cartItem = await _context.CartItems.Include(o => o.Cart).FirstOrDefaultAsync(x => x.Id == id);
             if (cartItem == null)
             {
                 return NotFound();
+            }
+
+            //update cart price
+            if (cartItem.Cart != null)
+            {
+                cartItem.Cart.TotalPrice -= cartItem.Price;
             }
 
             _context.CartItems.Remove(cartItem);

@@ -22,7 +22,7 @@ public class CustomerApiClient
     {
         try
         {
-            Helpers.GetUserAuthToken(_httpContextAccessor.HttpContext, ref _httpClient);
+            Helpers.Helpers.GetUserAuthToken(_httpContextAccessor.HttpContext, ref _httpClient);
 
             string requestUrl = $"/api/customers?pageIndex={pageIndex}&pageSize={pageSize}";
 
@@ -42,7 +42,7 @@ public class CustomerApiClient
     {
         try
         {
-            Helpers.GetUserAuthToken(_httpContextAccessor.HttpContext, ref _httpClient);
+            Helpers.Helpers.GetUserAuthToken(_httpContextAccessor.HttpContext, ref _httpClient);
 
             string requestUrl = $"/api/customers/search?pageIndex={pageIndex}&pageSize={pageSize}&searchValue={searchValue}";
 
@@ -61,7 +61,7 @@ public class CustomerApiClient
     {
         try
         {
-            Helpers.GetUserAuthToken(_httpContextAccessor.HttpContext, ref _httpClient);
+            Helpers.Helpers.GetUserAuthToken(_httpContextAccessor.HttpContext, ref _httpClient);
 
             string requestUrl = $"/api/customers/{customerId}";
 
@@ -80,7 +80,7 @@ public class CustomerApiClient
     {
         try
         {
-            Helpers.GetUserAuthToken(_httpContextAccessor.HttpContext, ref _httpClient);
+            Helpers.Helpers.GetUserAuthToken(_httpContextAccessor.HttpContext, ref _httpClient);
 
             string requestUrl = $"/api/products";
 
@@ -103,7 +103,7 @@ public class CustomerApiClient
     {
         try
         {
-            Helpers.GetUserAuthToken(_httpContextAccessor.HttpContext, ref _httpClient);
+            Helpers.Helpers.GetUserAuthToken(_httpContextAccessor.HttpContext, ref _httpClient);
 
             string requestUrl = $"/api/files/uploadProductPicture";
 
@@ -126,7 +126,7 @@ public class CustomerApiClient
     {
         try
         {
-            Helpers.GetUserAuthToken(_httpContextAccessor.HttpContext, ref _httpClient);
+            Helpers.Helpers.GetUserAuthToken(_httpContextAccessor.HttpContext, ref _httpClient);
 
             string requestUrl = $"/api/customers/{customerToDelete.Id}";
 
@@ -147,7 +147,7 @@ public class CustomerApiClient
     {
         try
         {
-            Helpers.GetUserAuthToken(_httpContextAccessor.HttpContext, ref _httpClient);
+            Helpers.Helpers.GetUserAuthToken(_httpContextAccessor.HttpContext, ref _httpClient);
 
             string requestUrl = $"/api/files/{productToDelete.Id}";
 
@@ -168,7 +168,7 @@ public class CustomerApiClient
     {
         try
         {
-            Helpers.GetUserAuthToken(_httpContextAccessor.HttpContext, ref _httpClient);
+            Helpers.Helpers.GetUserAuthToken(_httpContextAccessor.HttpContext, ref _httpClient);
 
             string requestUrl = $"/api/customers/{customerToUpdate.Id}";
 

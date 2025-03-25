@@ -1,0 +1,284 @@
+﻿@page "/order/overview"
+@using System.IdentityModel.Tokens.Jwt
+
+@rendermode InteractiveServer
+
+@inject CustomerApiClient CustomerApiClient
+@inject CartApiClient CartApiClient
+@inject SalesOrderApiClient SalesOrderApiClient
+@inject IDialogService DialogService
+@inject NavigationManager NavManager
+@inject AuthenticationStateProvider AuthStateProvider
+@inject IToastService ToastService
+@inject ILogger<OrderOverview> _logger
+
+@attribute [Authorize]
+
+@if (Customer == null)
+{
+    <div>Loading ...</div>
+}
+else
+{
+    if (!orderConfirmed)
+    {
+        <FluentStack Class="orderview" Orientation="Orientation.Vertical" VerticalGap="50">
+            <h1>Please confirm your order!</h1>
+            <FluentStack HorizontalAlignment="HorizontalAlignment.Center" Orientation="Orientation.Vertical">
+                <h3>Products</h3>
+                <FluentStack Width="70%">
+                    <FluentDataGrid AutoFit="true" Items="Customer.Cart?.CartItems?.AsQueryable()" ColumnResizeLabels="ColumnResizeLabels.Default" TGridItem="CartItemDTO" ResizableColumns="true" OnCellClick="HandleCellClick" RowSize="DataGridRowSize.Medium">
+                        <PropertyColumn Style="cursor: pointer;" Property="@(p => p.Product.Name)" Sortable="true" />
+                        <PropertyColumn Property="@(p => p.Product.Description)" Sortable="true" Width="15rem" />
+                        <PropertyColumn Property="@(p => p.Product.Manufacturer)" Sortable="true" />
+                        <PropertyColumn Property="@(p => p.Product.Price)" Sortable="true" />
+                        <PropertyColumn Property="@(p => p.Price)" Sortable="true" />
+                    </FluentDataGrid>
+                </FluentStack>
+                <FluentStack Width="70%" HorizontalAlignment="HorizontalAlignment.Right">
+                    <div class="cart-price-info">
+                        <div class="cart-price-info-text">Total Price:</div>
+                        € @totalPriceCart
+                    </div>
+                </FluentStack>
+            </FluentStack>
+
+            <FluentStack HorizontalAlignment="HorizontalAlignment.Center">
+                <FluentStack Class="orderview-address" Wrap="true" Orientation="Orientation.Horizontal" HorizontalAlignment="HorizontalAlignment.Center">
+                    <FluentStack Class="orderview-address" Width="49%" Orientation="Orientation.Horizontal" HorizontalAlignment="HorizontalAlignment.Center">
+                        <h3>Billing Address</h3>
+                        <FluentStack Orientation="Orientation.Vertical">
+                            <FluentTextField Disabled @bind-Value="Customer.BillingAddress.Street" TextFieldType="TextFieldType.Text" Name="customer.BillingAddress.Street" Label="Street" />
+                            <FluentTextField Disabled @bind-Value="Customer.BillingAddress.ZipCode" TextFieldType="TextFieldType.Text" Name="customer.BillingAddress.ZipCode" Label="Zip Code" />
+                            <FluentTextField Disabled @bind-Value="Customer.BillingAddress.State" TextFieldType="TextFieldType.Text" Name="customer.BillingAddress.State" Label="State" />
+                        </FluentStack>
+                        <FluentStack Orientation="Orientation.Vertical">
+                            <FluentTextField Disabled @bind-Value="Customer.BillingAddress.HouseNum" TextFieldType="TextFieldType.Text" Name="customer.BillingAddress.HouseNum" Label="House Number" />
+                            <FluentTextField Disabled @bind-Value="Customer.BillingAddress.City" TextFieldType="TextFieldType.Text" Name="customer.BillingAddress.City" Label="City" />
+                            <FluentTextField Disabled @bind-Value="Customer.BillingAddress.Country" TextFieldType="TextFieldType.Text" Name="customer.BillingAddress.Country" Label="Coutry" />
+
+                        </FluentStack>
+
+
+                    </FluentStack>
+                    <FluentStack Class="orderview-address" Width="49%" Orientation="Orientation.Horizontal" HorizontalAlignment="HorizontalAlignment.Center">
+                        <h3>Shipping Address</h3>
+                        <FluentStack Orientation="Orientation.Vertical">
+                            <FluentTextField Disabled @bind-Value="Customer.ShippingAddress.Street" TextFieldType="TextFieldType.Text" Name="customer.ShippingAddress.Street" Label="Street" />
+                            <FluentTextField Disabled @bind-Value="Customer.ShippingAddress.ZipCode" TextFieldType="TextFieldType.Text" Name="customer.ShippingAddress.ZipCode" Label="Zip Code" />
+                            <FluentTextField Disabled @bind-Value="Customer.ShippingAddress.State" TextFieldType="TextFieldType.Text" Name="customer.ShippingAddress.State" Label="State" />
+                        </FluentStack>
+                        <FluentStack Orientation="Orientation.Vertical">
+                            <FluentTextField Disabled @bind-Value="Customer.ShippingAddress.HouseNum" TextFieldType="TextFieldType.Text" Name="customer.ShippingAddress.HouseNum" Label="House Number" />
+                            <FluentTextField Disabled @bind-Value="Customer.ShippingAddress.City" TextFieldType="TextFieldType.Text" Name="customer.ShippingAddress.City" Label="City" />
+                            <FluentTextField Disabled @bind-Value="Customer.ShippingAddress.Country" TextFieldType="TextFieldType.Text" Name="customer.ShippingAddress.Country" Label="Coutry" />
+                        </FluentStack>
+                    </FluentStack>
+                </FluentStack>
+            </FluentStack>
+
+            <FluentStack VerticalAlignment="VerticalAlignment.Center">
+                <h3>Payment Options:</h3>
+                <FluentMenuButton ButtonAppearance="Appearance.Neutral" Text="@SelectedPaymentMethod" Items="@PaymentOptions.options.ToDictionary(x => x, x => x)" OnMenuChanged="HandleOnPaymentOptionChanged"></FluentMenuButton>
+            </FluentStack>
+
+            <FluentStack HorizontalAlignment="HorizontalAlignment.SpaceBetween">
+                <FluentButton Appearance="Appearance.Accent" OnClick="@(() => RedirectTo("/cart"))">Back</FluentButton>
+                <FluentButton Appearance="Appearance.Accent" OnClick="@ConfirmButtonClicked">Confirm Order</FluentButton>
+            </FluentStack>
+        </FluentStack>
+    }
+    else
+    {
+        <OrderFinal order="order">
+            <FluentStack HorizontalAlignment="HorizontalAlignment.Center" Orientation="Orientation.Vertical">
+                <h3>Products</h3>
+                <FluentStack Width="70%">
+                    <FluentDataGrid AutoFit="true" Items="Customer.Cart?.CartItems?.AsQueryable()" ColumnResizeLabels="ColumnResizeLabels.Default" TGridItem="CartItemDTO" ResizableColumns="true" OnCellClick="HandleCellClick" RowSize="DataGridRowSize.Medium">
+                        <PropertyColumn Style="cursor: pointer;" Property="@(p => p.Product.Name)" Sortable="true" />
+                        <PropertyColumn Property="@(p => p.Product.Description)" Sortable="true" Width="15rem" />
+                        <PropertyColumn Property="@(p => p.Product.Manufacturer)" Sortable="true" />
+                        <PropertyColumn Property="@(p => p.Product.Price)" Sortable="true" />
+                        <PropertyColumn Property="@(p => p.Price)" Sortable="true" />
+                    </FluentDataGrid>
+                </FluentStack>
+                <FluentStack Width="70%" HorizontalAlignment="HorizontalAlignment.Right">
+                    <div class="cart-price-info">
+                        <div class="cart-price-info-text">Total Price:</div>
+                        € @totalPriceCart
+                    </div>
+                </FluentStack>
+            </FluentStack>
+        </OrderFinal>
+    }
+}
+
+
+@code {
+    private CustomerDTO Customer { get; set; }
+
+    private SalesOrderDTO order;
+
+    private string SelectedPaymentMethod;
+
+    private bool orderConfirmed = false;
+    private double totalPriceCart = 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        //get customer
+        //check if all data is there
+
+        //show same table as in cart
+
+        //show Shipping and Billing Address
+
+        //show payment options (no logic now becaus no real payment)
+
+        //add back and next button
+        //back button to cart
+        //forward to confirmation with same table
+
+        //possibility to download a bill
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await GetCustomer();
+            await CheckCustomerData();
+            await GetCustomerCart();
+            StateHasChanged();
+        }
+    }
+
+    private async Task CheckCustomerData()
+    {
+        //check if some needed data for order is not given
+        //show info about redirect to user profile to enter data
+        try
+        {
+            if (string.IsNullOrEmpty(Customer.BillingAddress.HouseNum) || string.IsNullOrEmpty(Customer.BillingAddress.Country) || string.IsNullOrEmpty(Customer.BillingAddress.Street) ||
+            string.IsNullOrEmpty(Customer.BillingAddress.State) || string.IsNullOrEmpty(Customer.BillingAddress.City) || string.IsNullOrEmpty(Customer.BillingAddress.ZipCode) ||
+            string.IsNullOrEmpty(Customer.ShippingAddress.HouseNum) || string.IsNullOrEmpty(Customer.ShippingAddress.Country) || string.IsNullOrEmpty(Customer.ShippingAddress.Street) ||
+            string.IsNullOrEmpty(Customer.ShippingAddress.State) || string.IsNullOrEmpty(Customer.ShippingAddress.City) || string.IsNullOrEmpty(Customer.ShippingAddress.ZipCode) ||
+            string.IsNullOrEmpty(Customer.PhoneNumber) || string.IsNullOrEmpty(Customer.FirstName) || string.IsNullOrEmpty(Customer.LastName))
+            {
+                var dialog = await DialogService.ShowDialogAsync(@<div>We need more Information about you. <br /> Without that data we will not be able to send you anything. <br /> Please visit your profile and enter the needed information. </div>,
+                        new DialogParameters
+                            {
+                                Title = "Warning",
+                                PrimaryAction = "Visit Profile",
+                                DismissTitle = "Not now",
+                                SecondaryAction = "Not Now"
+                            });
+
+                var result = await dialog.Result;
+                if (!result.Cancelled)
+                {
+                    NavManager.NavigateTo("/user");
+                }
+            }
+        }
+        catch (Exception)
+        {
+
+            throw;
+        }
+    }
+
+    private async Task GetCustomer()
+    {
+        try
+        {
+            //get user id
+            var user = await AuthStateProvider.GetAuthenticationStateAsync();
+            var token = user.User.FindFirst("access_token")?.Value;
+
+            var handler = new JwtSecurityTokenHandler();
+            var jwtTokenParsed = handler.ReadJwtToken(token);
+
+
+            var userId = jwtTokenParsed.Claims.FirstOrDefault(x => x.Type == JwtRegisteredClaimNames.NameId)?.Value;
+
+            Customer = await CustomerApiClient.GetCustomerDetailsAsync(Convert.ToInt32(userId));
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            ToastService.ShowError("Unauthorized. Please Login again!");
+            NavManager.NavigateTo("/logout");
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowError("Your user data could not be loaded! Please try again.");
+            _logger.LogError("Error while setting up user data for UserDetails page: " + ex.ToString());
+        }
+    }
+
+    private async Task GetCustomerCart()
+    {
+        try
+        {
+            var cart = await CartApiClient.GetCartDetailsAsync();
+            Customer.Cart = cart;
+
+            totalPriceCart = cart.TotalPrice;
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowError("Error while getting your cart details. Please try again!");
+            _logger.LogError(ex.ToString());
+        }
+    }
+
+    private void HandleCellClick(FluentDataGridCell<CartItemDTO> cell)
+    {
+        if (cell.GridColumn == 1)
+        {
+            RedirectTo($"product/{cell.Item.Product.Id}");
+        }
+    }
+
+    private async Task HandleOnPaymentOptionChanged(MenuChangeEventArgs args)
+    {
+        SelectedPaymentMethod = args.Value;
+    }
+
+    private async Task ConfirmButtonClicked()
+    {
+        try
+        {
+            order = new()
+            {
+                
+            }
+
+            order = await SalesOrderApiClient.AddOrderAsync();
+
+            orderConfirmed = true;
+            StateHasChanged();
+        }
+        catch (Exception)
+        {
+            
+            throw;
+        }
+    }
+
+    private void RedirectTo(string path)
+    {
+        NavManager.NavigateTo(path);
+    }
+
+    private static class PaymentOptions
+    {
+        public static string PayPal = "PayPal";
+        public static string MasterCard = "Master Card";
+        public static string Visa = "Visa";
+        public static string GooglePay = "GooglePay";
+
+        public static List<string> options = [PayPal, MasterCard, Visa, GooglePay];
+    }
+}

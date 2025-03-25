@@ -20,7 +20,7 @@ public class WeatherApiClient
     {
         try
         {
-            Helpers.GetUserAuthToken(_httpContextAccessor.HttpContext, ref _httpClient);
+            Helpers.Helpers.GetUserAuthToken(_httpContextAccessor.HttpContext, ref _httpClient);
 
             List<WeatherForecastDTO>? forecasts = null;
 

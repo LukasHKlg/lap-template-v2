@@ -1,12 +1,13 @@
 ﻿@page "/"
 @using OnlineShop.Shared.Models
+@using OnlineShop.Web.Helpers
 
 @rendermode InteractiveServer
 
 @inject ProductApiClient ProductApiClient
 @inject IToastService ToastService
 @inject NavigationManager NavManager
-@inject IConfiguration config
+@inject AppsettingsConfigService ConfigHelper
 
 <PageTitle>OnlineShop</PageTitle>
 
@@ -22,7 +23,7 @@
 			{
 				<FluentCard Class="product-card-fluent" Width="20rem" Height="20rem" AreaRestricted="false" onclick="@(() => RedirectTo($"/product/{product.Id}"))">
 					<div class="product-card">
-						<img class="product-card-img" src="@(Helpers.GetPictureUrl(product.Id + ".jpg", config))" />
+						<img class="product-card-img" src="@(Helpers.GetPictureUrl(product.Id + ".jpg", ConfigHelper))" />
 						<div class="product-card-name">
 							@product.Name
 						</div>

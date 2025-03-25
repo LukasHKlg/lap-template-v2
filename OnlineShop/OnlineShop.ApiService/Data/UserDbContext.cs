@@ -119,6 +119,7 @@ namespace OnlineShop.ApiService.Data
                 new
                 {
                     Id = 1,
+                    OrderDate = DateTime.Now,
                     // Similarly, use foreign key properties if available.
                     CartId = 1,
                     CustomerId = 4,

@@ -7,6 +7,7 @@ namespace OnlineShop.ApiService.Models
     {
         [Key]
         public int Id { get; set; }
+        public DateTime OrderDate { get; set; }
         public Cart Cart { get; set; }
         [DeleteBehavior(DeleteBehavior.NoAction)]
         public Customer Customer { get; set; }

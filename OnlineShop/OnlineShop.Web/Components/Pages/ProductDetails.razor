@@ -1,6 +1,7 @@
 ﻿@page "/product/{id}"
 
 @using Microsoft.AspNetCore.Mvc
+@using OnlineShop.Web.Helpers
 
 @rendermode InteractiveServer
 
@@ -10,7 +11,7 @@
 @inject ILogger<ProductDetails> _logger
 @inject AuthenticationStateProvider AuthStateProvider
 @inject NavigationManager NavManager
-@inject IConfiguration config
+@inject AppsettingsConfigService ConfigHelper
 
 <PageTitle>Product Details</PageTitle>
 
@@ -22,7 +23,7 @@
 	else
 	{
 		<FluentStack Width="25rem" Orientation="Orientation.Vertical" HorizontalAlignment="HorizontalAlignment.Start" >
-			<img class="prod-details-img" src="@(Helpers.GetPictureUrl(product.Id + ".jpg", config))" />
+			<img class="prod-details-img" src="@(Helpers.GetPictureUrl(product.Id + ".jpg", ConfigHelper))" />
 		</FluentStack>
 		<FluentStack Width="60rem" Orientation="Orientation.Vertical" HorizontalAlignment="HorizontalAlignment.Start">
 			<div class="prod-details-name">@product.Name</div>
@@ -146,5 +147,7 @@
 		}
 
 		var successfullyAdded = await CartApiClient.AddProductToCart(newProduct);
+		if (successfullyAdded) ToastService.ShowSuccess("Successfully added to cart.");
+		else ToastService.ShowError("Couldnt add product to cart. Please try again.");
 	}
 }

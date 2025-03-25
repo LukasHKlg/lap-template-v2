@@ -212,8 +212,40 @@ code {
     width: 50%;
 }
 
+.orderview-address {
+    /*width: 49%!important;*/   
+}
+
+.orderview {
+    padding: 1.5rem 3rem 2rem 3rem;
+}
+    .orderview fluent-text-field {
+        width: 100%;
+    }
+
+.cart-price-info {
+    display: flex;
+    font-size: 1.4rem;
+}
+
+.cart-price-info-text {
+    margin-right: .5rem;
+}
+
+
 @media (max-width: 1100px) {
     #AddProduct{
-        width: 100%
+        width: 100%;
+    }
+    
+    .orderview{
+        padding: 1.5rem 0 2rem 0;
+    }
+
+    .orderview-address{
+        width: 100% !important;
+    }
+    .orderview fluent-text-field {
+        width: 7rem;
     }
 }

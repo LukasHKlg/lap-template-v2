@@ -8,37 +8,32 @@ using OnlineShop.Web.Services;
 
 namespace OnlineShop.Web.ApiClients;
 
-public class CartApiClient
+public class SalesOrderApiClient
 {
     private HttpClient _httpClient;
     private readonly IHttpContextAccessor _httpContextAccessor;
 
-    public CartApiClient(IHttpClientFactory httpClientFactory, IHttpContextAccessor httpContextAccessor)
+    public SalesOrderApiClient(IHttpClientFactory httpClientFactory, IHttpContextAccessor httpContextAccessor)
     {
         _httpClient = httpClientFactory.CreateClient("ApiClient");
         _httpContextAccessor = httpContextAccessor;
     }
 
-    public async Task<CartDTO> GetCartDetailsAsync(CancellationToken cancellationToken = default)
+    public async Task<string> GetOrderInvoiceAsync(SalesOrderDTO salesOrder, CancellationToken cancellationToken = default)
     {
         try
         {
-            // Retrieve the JWT token from the current user's claims.
-            var token = _httpContextAccessor.HttpContext?.User.FindFirst("access_token")?.Value;
-            if (!string.IsNullOrEmpty(token))
-            {
-                _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-            }
-            else
-            {
-                throw new Exception("No access token found.");
-            }
+            Helpers.Helpers.GetUserAuthToken(_httpContextAccessor.HttpContext, ref _httpClient);
 
-            string requestUrl = $"/api/carts/getcartforuser";
+            string requestUrl = $"/api/salesorders/getinvoice/{salesOrder.Id}";
 
-            var response = await _httpClient.GetFromJsonAsync<CartDTO>(requestUrl);
+            var response = await _httpClient.GetAsync(requestUrl);
+            var bytes = await response.Content.ReadAsByteArrayAsync();
 
-            return response;
+            var base64 = Convert.ToBase64String(bytes);
+            var url = $"data:application/pdf;base64, {base64}";
+
+            return url;
         }
         catch (Exception ex)
         {
@@ -47,29 +42,19 @@ public class CartApiClient
 
     }
 
-    public async Task<bool> AddProductToCart(ProductDTO productToAdd, CancellationToken cancellationToken = default)
+    public async Task<SalesOrderDTO> AddOrderAsync(SalesOrderDTO newOrder, CancellationToken cancellationToken = default)
     {
         try
         {
-            // Retrieve the JWT token from the current user's claims.
-            var token = _httpContextAccessor.HttpContext?.User.FindFirst("access_token")?.Value;
-            if (!string.IsNullOrEmpty(token))
-            {
-                _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-            }
-            else
-            {
-                throw new Exception("No access token found.");
-            }
+           Helpers.Helpers.GetUserAuthToken(_httpContextAccessor.HttpContext, ref _httpClient);
 
-            string requestUrl = $"/api/CartItems/{productToAdd.Id}";
+            string requestUrl = $"/api/salesorders";
 
-            var response = await _httpClient.GetFromJsonAsync<CartItemDTO>(requestUrl);
+            var response = await _httpClient.PostAsJsonAsync<SalesOrderDTO>(requestUrl, newOrder, cancellationToken);
 
-            //var responseItem = await response.Content.ReadFromJsonAsync<CartItemDTO>();
+            var responseItem = await response.Content.ReadFromJsonAsync<SalesOrderDTO>();
 
-
-            return response != null;
+            return responseItem;
         }
         catch (Exception)
         {

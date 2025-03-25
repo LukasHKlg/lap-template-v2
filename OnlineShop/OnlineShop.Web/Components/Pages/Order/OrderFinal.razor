@@ -1,0 +1,74 @@
+﻿@rendermode InteractiveServer
+
+@attribute [Authorize]
+
+@inject NavigationManager NavManager
+@inject SalesOrderApiClient SalesOrderApiClient
+@inject IJSRuntime JS
+
+
+
+<FluentStack Orientation="Orientation.Vertical">
+    <FluentStack>
+        <h1>Thank you for your order!</h1>
+    </FluentStack>
+    <FluentStack Orientation="Orientation.Vertical">
+        @OrderList
+        <FluentButton OnClick="DownloadInvoice"><FluentIcon Value="@(new Icons.Regular.Size20.ArrowDownload())" /> Download Invoice</FluentButton>
+    </FluentStack>
+    <FluentStack>
+        <FluentButton OnClick="@(() => RedirectTo("/"))">Continue Shopping</FluentButton>
+    </FluentStack>
+</FluentStack>
+
+
+@code{
+    [Parameter]
+    public RenderFragment OrderList { get; set; }
+
+    [Parameter]
+    public SalesOrderDTO order { get; set; }
+
+    private IJSObjectReference downloadScript;
+
+    protected override async Task OnInitializedAsync()
+    {
+        //congrats
+
+        //show invoice
+
+        //download button for invoice
+
+        //weitershoppen button
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            downloadScript = await JS.InvokeAsync<IJSObjectReference>("import", "/js/downloadfile.js");
+        }
+    }
+
+    private async Task DownloadInvoice()
+    {
+        try
+        {
+            var url = await SalesOrderApiClient.GetOrderInvoiceAsync(order);
+            if(!string.IsNullOrEmpty(url))
+            {
+                await downloadScript.InvokeVoidAsync("downloadFile", url, $"invoice_{order.Id}.pdf");
+            }
+        }
+        catch (Exception)
+        {
+            
+            throw;
+        }
+    }
+
+    private void RedirectTo(string path)
+    {
+        NavManager.NavigateTo(path);
+    }
+}

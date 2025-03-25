@@ -1,7 +1,7 @@
 ﻿using System.Net.Http.Headers;
 using System.Net.Http;
 
-namespace OnlineShop.Web
+namespace OnlineShop.Web.Helpers
 {
     public class Helpers
     {
@@ -19,11 +19,11 @@ namespace OnlineShop.Web
             }
         }
 
-        public static string GetPictureUrl(string picturePath, IConfiguration config)
+        public static string GetPictureUrl(string picturePath, AppsettingsConfigService configHelper)
         {
             picturePath = picturePath.Contains('.') ? picturePath : picturePath + ".jpg";
 
-            return config["API:Path"] + config["API:ProductPicturesPath"] + picturePath;
+            return configHelper.APIPathProductPicturesPath + picturePath;
         }
     }
 }

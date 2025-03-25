@@ -12,7 +12,16 @@
 <PageTitle>Shopping Cart</PageTitle>
 
 <FluentStack Orientation="Orientation.Vertical">
-	<FluentStack><h1>Your Cart</h1></FluentStack>
+	<FluentStack Orientation="Orientation.Horizontal" HorizontalAlignment="HorizontalAlignment.SpaceBetween">
+		<h1>Your Cart</h1>
+		<FluentStack Orientation="Orientation.Horizontal" HorizontalAlignment="HorizontalAlignment.End" VerticalAlignment="VerticalAlignment.Center">
+			<div class="cart-price-info">
+				<div class="cart-price-info-text">Total Price:</div> 
+				€ @totalPriceCart
+			</div>
+			<FluentButton Disabled="@(totalPriceCart <= 0)" Appearance="Appearance.Accent" OnClick="@(() => RedirectTo("order/overview"))">Place Order</FluentButton>
+		</FluentStack>
+	</FluentStack>
 	<FluentStack>
 		<FluentDataGrid AutoFit="true" Items="cartItems" ColumnResizeLabels="ColumnResizeLabels.Default" TGridItem="CartItemDTO" ResizableColumns="true" OnCellClick="HandleCellClick" RowSize="DataGridRowSize.Medium">
 			<PropertyColumn Style="cursor: pointer;" Property="@(p => p.Product.Name)" Sortable="true" />
@@ -38,12 +47,17 @@
 	private CartDTO cart { get; set; }
 	private IQueryable<CartItemDTO> cartItems { get; set; }
 
+	private double totalPriceCart = 0;
+
 	protected override async Task OnInitializedAsync()
 	{
 		try
 		{
 			cart = await CartApiClient.GetCartDetailsAsync();
 			cartItems = cart.CartItems.AsQueryable();
+
+			totalPriceCart = cart.TotalPrice;
+			StateHasChanged();
 		}
 		catch (Exception ex)
 		{
@@ -72,6 +86,7 @@
 		{
 			itemToUpdate.Quantity += value;
 			itemToUpdate.Price += (itemToUpdate.Product.Price * value);
+			itemToUpdate.Cart.TotalPrice += (itemToUpdate.Product.Price * value);
 			bool wasSuccessUpdate = await CartApiClient.UpdateQuantity(itemToUpdate);
 
 			if (!wasSuccessUpdate)
@@ -79,6 +94,9 @@
 				ToastService.ShowError($"Quantity for item {itemToUpdate.Product.Name} was not updated. Please try again!");
 				itemToUpdate.Quantity -= value;
 			}
+
+			totalPriceCart = itemToUpdate.Cart.TotalPrice;
+			StateHasChanged();
 		}
 		catch (Exception ex)
 		{
@@ -97,7 +115,9 @@
 			{
 				ToastService.ShowSuccess($"Item {itemToDelete.Product.Name} removed from Cart.");
 				cartItems = cartItems.Where(x => x.Id != itemToDelete.Id);
-
+				
+				totalPriceCart -= itemToDelete.Price;
+				StateHasChanged();
 			}
 			else ToastService.ShowError($"Item {itemToDelete.Product.Name} was not removed. Please try again!");
 		}
