@@ -127,7 +127,7 @@ namespace OnlineShop.ApiService.Controllers
             var newProduct = await _context.Products.FindAsync(id);
 
             //try get already existing cartitem
-            var cartItem = await _context.CartItems.FirstOrDefaultAsync(x => x.Product.Id == newProduct.Id);
+            var cartItem = await _context.CartItems.FirstOrDefaultAsync(x => x.Product.Id == newProduct.Id && x.Cart.Id == cart.Id);
             if(cartItem == null)
             {
                 //create new CartItem

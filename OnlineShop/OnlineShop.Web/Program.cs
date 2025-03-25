@@ -53,6 +53,7 @@ builder.Services.AddScoped<ProductApiClient>();
 builder.Services.AddScoped<CartApiClient>();
 builder.Services.AddScoped<CustomerApiClient>();
 builder.Services.AddTransient<AppsettingsConfigService>();
+builder.Services.AddScoped<SalesOrderApiClient>();
 
 var app = builder.Build();
 

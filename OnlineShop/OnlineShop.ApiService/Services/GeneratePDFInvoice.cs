@@ -3,21 +3,20 @@ using OnlineShop.ApiService.Models;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
+using System.Net;
 
 namespace OnlineShop.ApiService.Services
 {
     public class GeneratePDFInvoice : IDocument
     {
         public SalesOrder Order { get; set; }
-        public List<CartItem> CartItems { get; set; }
-        private Address address;
-        private string Title;
+        public List<OrderDetail> OrderItems { get; set; }
 
 
-        public GeneratePDFInvoice(SalesOrder order, List<CartItem> cartItems)
+        public GeneratePDFInvoice(SalesOrder order, List<OrderDetail> orderitems)
         {
             Order = order;
-            CartItems = cartItems;
+            OrderItems = orderitems;
         }
 
         public DocumentMetadata GetMetadata() => DocumentMetadata.Default;
@@ -72,22 +71,19 @@ namespace OnlineShop.ApiService.Services
 
                     column.Item().Row(row =>
                     {
-                        Title = "Shipping Address";
-                        address = Order.ShippingAddress;
-                        row.RelativeItem().Element(ComposeAddress);
+                        row.RelativeItem().Element(ComposeBillingAddress);
 
                         row.ConstantItem(50);
 
-                        Title = "Billing Address";
-                        address = Order.BillingAddress;
-                        row.RelativeItem().Element(ComposeAddress);
+                        row.RelativeItem().Element(ComposeShippingAddress);
                     });
 
                     column.Spacing(30);
 
                     column.Item().Element(ComposeTable);
 
-                    column.Item().AlignRight().Text($"Grand total: {Order.Cart.TotalPrice}€").FontSize(14);
+                    var totalPrice = OrderItems.Sum(x => x.UnitPrice * x.Quantity);
+                    column.Item().AlignRight().Text($"Grand total: {totalPrice}€").FontSize(14);
 
                     //if (!string.IsNullOrWhiteSpace(Model.Comments))
                     //    column.Item().PaddingTop(25).Element(ComposeComments);
@@ -121,13 +117,13 @@ namespace OnlineShop.ApiService.Services
                         }
                     });
 
-                    foreach (var item in CartItems)
+                    foreach (var item in OrderItems)
                     {
                         table.Cell().Element(CellStyle).Text(item.Product.Id + "");
                         table.Cell().Element(CellStyle).Text(item.Product.Name);
-                        table.Cell().Element(CellStyle).AlignRight().Text($"{item.Product.Price}€");
+                        table.Cell().Element(CellStyle).AlignRight().Text($"{item.UnitPrice}€");
                         table.Cell().Element(CellStyle).AlignRight().Text(item.Quantity + "");
-                        table.Cell().Element(CellStyle).AlignRight().Text($"{item.Price}€");
+                        table.Cell().Element(CellStyle).AlignRight().Text($"{item.UnitPrice * item.Quantity}€");
 
                         static IContainer CellStyle(IContainer container)
                         {
@@ -147,18 +143,34 @@ namespace OnlineShop.ApiService.Services
                 });
             }
 
-            void ComposeAddress(IContainer container)
+            void ComposeShippingAddress(IContainer container)
             {
                 container.Column(column =>
                 {
                     column.Spacing(2);
 
-                    column.Item().BorderBottom(1).PaddingBottom(5).Text(Title).SemiBold();
+                    column.Item().BorderBottom(1).PaddingBottom(5).Text("Shipping Address").SemiBold();
 
-                    column.Item().Text(Order.Customer.FirstName + " " + Order.Customer.LastName);
-                    column.Item().Text(address.Country);
-                    column.Item().Text(address.Street + " " + address.HouseNum);
-                    column.Item().Text($"{address.HouseNum} {address.City}");
+                    column.Item().Text(Order.ShipName);
+                    column.Item().Text(Order.ShipCountry);
+                    column.Item().Text(Order.ShipStreet + " " + Order.ShipHouseNum);
+                    column.Item().Text($"{Order.ShipHouseNum} {Order.ShipCity}");
+                    column.Item().Text(Order.Customer.ApplicationUser?.Email ?? "no email");
+                    column.Item().Text(Order.Customer.PhoneNumber);
+                });
+            }
+            void ComposeBillingAddress(IContainer container)
+            {
+                container.Column(column =>
+                {
+                    column.Spacing(2);
+
+                    column.Item().BorderBottom(1).PaddingBottom(5).Text("Billing Address").SemiBold();
+
+                    column.Item().Text(Order.BillingName);
+                    column.Item().Text(Order.BillingCountry);
+                    column.Item().Text(Order.BillingStreet + " " + Order.BillingHouseNum);
+                    column.Item().Text($"{Order.BillingHouseNum} {Order.BillingCity}");
                     column.Item().Text(Order.Customer.ApplicationUser?.Email ?? "no email");
                     column.Item().Text(Order.Customer.PhoneNumber);
                 });

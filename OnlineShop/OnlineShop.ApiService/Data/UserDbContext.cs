@@ -12,6 +12,7 @@ namespace OnlineShop.ApiService.Data
         public DbSet<CartItem> CartItems { get; set; }
         public DbSet<Cart> Carts { get; set; }
         public DbSet<SalesOrder> SalesOrders { get; set; }
+        public DbSet<OrderDetail> OrderDetails { get; set; }
         public DbSet<BillingAddress> BillingAddresses { get; set; }
         public DbSet<ShippingAddress> ShippingAddresses { get; set; }
         public DbSet<Product> Products { get; set; }
@@ -120,12 +121,34 @@ namespace OnlineShop.ApiService.Data
                 {
                     Id = 1,
                     OrderDate = DateTime.Now,
-                    // Similarly, use foreign key properties if available.
-                    CartId = 1,
+                    ShippedDate = DateTime.Now,
                     CustomerId = 4,
-                    ShippingAddressId = 1,
-                    BillingAddressId = 2
+                    ShipCountry = "Austria",
+                    ShipState = "Kärnten",
+                    ShipHouseNum = "1",
+                    ShipStreet = "Lausing",
+                    ShipCity = "Klagenfurt",
+                    ShipZipCode = "9020",
+                    ShipName = "Andre Ludwig",
+                    BillingCountry = "Austria",
+                    BillingState = "Kärnten",
+                    BillingHouseNum = "1",
+                    BillingStreet = "Lausing",
+                    BillingCity = "Klagenfurt",
+                    BillingZipCode = "9020",
+                    BillingName = "Martha Liu"
                 }
+            );
+
+            modelBuilder.Entity<OrderDetail>().HasData(
+                new
+                {
+                    Id = 1,
+                    ProductId = 1,
+                    OrderId = 1,
+                    UnitPrice = 40.20,
+                    Quantity = 1
+                }   
             );
         }
     }

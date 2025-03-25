@@ -13,7 +13,7 @@
         <h1>Thank you for your order!</h1>
     </FluentStack>
     <FluentStack Orientation="Orientation.Vertical">
-        @OrderList
+        @ChildContent
         <FluentButton OnClick="DownloadInvoice"><FluentIcon Value="@(new Icons.Regular.Size20.ArrowDownload())" /> Download Invoice</FluentButton>
     </FluentStack>
     <FluentStack>
@@ -24,7 +24,7 @@
 
 @code{
     [Parameter]
-    public RenderFragment OrderList { get; set; }
+    public RenderFragment ChildContent { get; set; }
 
     [Parameter]
     public SalesOrderDTO order { get; set; }
@@ -46,7 +46,7 @@
     {
         if (firstRender)
         {
-            downloadScript = await JS.InvokeAsync<IJSObjectReference>("import", "/js/downloadfile.js");
+            downloadScript = await JS.InvokeAsync<IJSObjectReference>("import", "/js/filedownload.js");
         }
     }
 
@@ -62,8 +62,16 @@
         }
         catch (Exception)
         {
-            
+
             throw;
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if(downloadScript != null)
+        {
+            await downloadScript.DisposeAsync();
         }
     }
 

@@ -150,6 +150,11 @@ else
             await CheckCustomerData();
             await GetCustomerCart();
             StateHasChanged();
+
+            if(Customer.Cart == null || Customer.Cart.CartItems == null || Customer.Cart.CartItems.Count() <= 0)
+            {
+                RedirectTo("/cart");
+            }
         }
     }
 
@@ -252,10 +257,31 @@ else
         {
             order = new()
             {
-                
-            }
+                Customer = Customer,
+                OrderDate = DateTime.Now,
+                BillingName = Customer.LastName + " " + Customer.FirstName,
+                ShipName = Customer.LastName + " " + Customer.FirstName,
+                BillingCity = Customer.BillingAddress.City,
+                BillingCountry = Customer.BillingAddress.Country,
+                BillingHouseNum = Customer.BillingAddress.HouseNum,
+                BillingState = Customer.BillingAddress.State,
+                BillingStreet = Customer.BillingAddress.Street,
+                BillingZipCode = Customer.BillingAddress.ZipCode,
+                ShipCity = Customer.ShippingAddress.City,
+                ShipCountry = Customer.ShippingAddress.Country,
+                ShipHouseNum = Customer.ShippingAddress.HouseNum,
+                ShipState = Customer.ShippingAddress.State,
+                ShipStreet = Customer.ShippingAddress.Street,
+                ShipZipCode = Customer.ShippingAddress.ZipCode
+            };
 
-            order = await SalesOrderApiClient.AddOrderAsync();
+            order = await SalesOrderApiClient.AddOrderAsync(order);
+
+            if(order == null)
+            {
+                ToastService.ShowError("There was a problem with you order. Please try again!");
+                return;
+            }
 
             orderConfirmed = true;
             StateHasChanged();

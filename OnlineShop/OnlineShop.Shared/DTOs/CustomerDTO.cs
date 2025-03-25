@@ -24,7 +24,7 @@ namespace OnlineShop.Shared.DTOs
         public bool isDisabled { get; set; }
         [AllowNull]
         public IEnumerable<string>? Roles { get; set; }
-
-        public CartDTO Cart { get; set; }
+        [AllowNull]
+        public CartDTO? Cart { get; set; }
     }
 }

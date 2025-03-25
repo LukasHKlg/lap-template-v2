@@ -10,6 +10,7 @@ using OnlineShop.ApiService.Data;
 using OnlineShop.ApiService.Models;
 using OnlineShop.ApiService.Repositories;
 using OnlineShop.ApiService.Services;
+using OnlineShop.Shared.DTOs;
 using OnlineShop.Shared.Models;
 using QuestPDF.Fluent;
 
@@ -22,11 +23,13 @@ namespace OnlineShop.ApiService.Controllers
     {
         private readonly UserDbContext _context;
         private CartRepository CartRepository;
+        private readonly ILogger<SalesOrdersController> _logger;
 
-        public SalesOrdersController(UserDbContext context, CartRepository cartRepository)
+        public SalesOrdersController(UserDbContext context, CartRepository cartRepository, ILogger<SalesOrdersController> logger)
         {
             _context = context;
             CartRepository = cartRepository;
+            _logger = logger;
         }
 
         // GET: api/SalesOrders
@@ -85,12 +88,90 @@ namespace OnlineShop.ApiService.Controllers
         // POST: api/SalesOrders
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPost]
-        public async Task<ActionResult<SalesOrder>> PostSalesOrder(SalesOrder salesOrder)
+        public async Task<ActionResult<SalesOrderDTO>> PostSalesOrder(SalesOrderDTO salesOrderdto)
         {
-            var addedOrder = _context.SalesOrders.Add(salesOrder);
-            await _context.SaveChangesAsync();
+            try
+            {
 
-            return addedOrder.Entity;
+
+                var user = await _context.Customers.Include(o => o.Cart).FirstOrDefaultAsync(x => x.Id == salesOrderdto.Customer.Id);
+                //foreach product in cart add to order orderdtails
+
+                var salesOrder = new SalesOrder()
+                {
+                    BillingCity = salesOrderdto.BillingCity,
+                    BillingCountry = salesOrderdto.BillingCountry,
+                    BillingHouseNum = salesOrderdto.BillingHouseNum,
+                    BillingName = salesOrderdto.BillingName,
+                    BillingState = salesOrderdto.BillingState,
+                    BillingStreet = salesOrderdto.BillingStreet,
+                    BillingZipCode = salesOrderdto.BillingZipCode,
+                    Customer = user,
+                    ShipCity = salesOrderdto.ShipCity,
+                    OrderDate = salesOrderdto.OrderDate,
+                    ShipCountry = salesOrderdto.ShipCountry,
+                    ShipHouseNum = salesOrderdto.ShipHouseNum,
+                    ShipName = salesOrderdto.ShipName,
+                    ShipState = salesOrderdto.ShipState,
+                    ShipStreet = salesOrderdto.ShipStreet,
+                    ShipZipCode = salesOrderdto.ShipZipCode
+                };
+
+                var addedOrder = _context.SalesOrders.Add(salesOrder);
+
+                await _context.SaveChangesAsync();
+
+
+                try
+                {
+                    var cartItems = await CartRepository.GetCartItems(user.Cart.Id);
+
+                    foreach (var cartItem in cartItems)
+                    {
+                        var orderDetail = new OrderDetail()
+                        {
+                            Product = cartItem.Product,
+                            Quantity = cartItem.Quantity,
+                            SalesOrder = addedOrder.Entity,
+                            UnitPrice = cartItem.Product.Price
+                        };
+
+                        _context.OrderDetails.Add(orderDetail);
+                    }
+
+                    await _context.SaveChangesAsync();
+
+
+                    //clean up users cart
+                    user.Cart.TotalPrice = 0;
+                    _context.Entry(user.Cart).State = EntityState.Modified;
+
+                    _context.CartItems.RemoveRange(cartItems);
+
+
+                    await _context.SaveChangesAsync();
+                }
+                catch (Exception ex)
+                {
+                    _context.SalesOrders.Remove(addedOrder.Entity);
+                    await _context.SaveChangesAsync();
+                    _logger.LogError($"Error while creating the order details or while cleaning up the users cart for order: {addedOrder.Entity.Id}. Error: " + ex.ToString());
+                    throw;
+                }
+
+
+                SalesOrderDTO salesOrderDTO = new SalesOrderDTO()
+                {
+                    Id = addedOrder.Entity.Id
+                };
+
+                return salesOrderDTO;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("Error while adding new Order. Error: " + ex.ToString());
+                throw;
+            }
         }
 
         //// DELETE: api/SalesOrders/5
@@ -120,13 +201,12 @@ namespace OnlineShop.ApiService.Controllers
         {
             try
             {
-                var order = await _context.SalesOrders.Include(x => x.BillingAddress).Include(x => x.ShippingAddress).Include(x => x.Cart)
-                        .Include(x => x.Customer).FirstOrDefaultAsync(x => x.Id == id);
+                var order = await _context.SalesOrders.Include(x => x.Customer).Include(x=> x.Customer.ApplicationUser).FirstOrDefaultAsync(x => x.Id == id);
                 if (order == null) { return NotFound(); }
 
-                var cartItems = await CartRepository.GetCartItems(order.Cart.Id);
+                var orderItems = await _context.OrderDetails.Include(o => o.Product).Where(x => x.SalesOrder.Id == order.Id).ToListAsync();
 
-                var invoice = new GeneratePDFInvoice(order, cartItems.ToList());
+                var invoice = new GeneratePDFInvoice(order, orderItems);
 
                 var stream = new MemoryStream();
                 invoice.GeneratePdf(stream);
@@ -134,8 +214,9 @@ namespace OnlineShop.ApiService.Controllers
 
                 return File(stream, "application/pdf", $"invoice_{id}.pdf");
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                _logger.LogError("Error while creating invoice pdf. Error: " + ex.ToString());
                 return BadRequest("Could not create the invoice.");
                 throw;
             }

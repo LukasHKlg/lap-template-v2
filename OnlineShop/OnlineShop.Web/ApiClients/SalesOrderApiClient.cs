@@ -39,7 +39,6 @@ public class SalesOrderApiClient
         {
             throw;
         }
-
     }
 
     public async Task<SalesOrderDTO> AddOrderAsync(SalesOrderDTO newOrder, CancellationToken cancellationToken = default)
@@ -52,47 +51,19 @@ public class SalesOrderApiClient
 
             var response = await _httpClient.PostAsJsonAsync<SalesOrderDTO>(requestUrl, newOrder, cancellationToken);
 
-            var responseItem = await response.Content.ReadFromJsonAsync<SalesOrderDTO>();
+            if (response.IsSuccessStatusCode)
+            {
+                var responseItem = await response.Content.ReadFromJsonAsync<SalesOrderDTO>();
 
-            return responseItem;
-        }
-        catch (Exception)
-        {
+                return responseItem;
+            }
+            else
+            {
+                var responseMsg = await response.Content.ReadAsStringAsync();
 
-            throw;
-        }
-    }
+                return null;
+            }
 
-    public async Task<bool> DeleteProductFromCart(CartItemDTO cartItemToDelete, CancellationToken cancellationToken = default)
-    {
-        try
-        {
-            Helpers.Helpers.GetUserAuthToken(_httpContextAccessor.HttpContext, ref _httpClient);
-
-            string requestUrl = $"/api/CartItems/{cartItemToDelete.Id}";
-
-            var response = await _httpClient.DeleteAsync(requestUrl);
-
-            return response.IsSuccessStatusCode;
-        }
-        catch (Exception)
-        {
-
-            throw;
-        }
-    }
-
-    public async Task<bool> UpdateQuantity(CartItemDTO productToUpdate, CancellationToken cancellationToken = default)
-    {
-        try
-        {
-            Helpers.Helpers.GetUserAuthToken(_httpContextAccessor.HttpContext, ref _httpClient);
-
-            string requestUrl = $"/api/CartItems/{productToUpdate.Id}";
-
-            var response = await _httpClient.PutAsJsonAsync<CartItemDTO>(requestUrl, productToUpdate);
-
-            return response.IsSuccessStatusCode;
         }
         catch (Exception)
         {
