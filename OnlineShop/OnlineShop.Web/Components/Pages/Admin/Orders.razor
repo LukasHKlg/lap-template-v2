@@ -1,6 +1,8 @@
 ﻿@page "/admin/orders"
 @using OnlineShop.Shared.Models
 
+@attribute [Authorize(Roles = "Admin")]
+
 @rendermode InteractiveServer
 
 

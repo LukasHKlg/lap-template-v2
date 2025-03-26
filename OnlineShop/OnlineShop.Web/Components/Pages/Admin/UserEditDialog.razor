@@ -1,5 +1,7 @@
 ﻿@implements IDialogContentComponent<CustomerDTO>
 
+@attribute [Authorize(Roles = "Admin")]
+
 <!-- Header -->
 <FluentDialogHeader ShowDismiss="true">
     <FluentStack VerticalAlignment="VerticalAlignment.Center">

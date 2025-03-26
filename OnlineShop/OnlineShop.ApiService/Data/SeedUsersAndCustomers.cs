@@ -9,6 +9,7 @@ namespace OnlineShop.ApiService.Data
     {
         public static async Task SeedUsersAndCustomersAsync(UserManager<ApplicationUser> userManager, RoleManager<IdentityRole> roleManager, UserDbContext context)
         {
+            //if this failes you possibly forgot to load migrations into database
             #region Roles
             foreach (var role in Roles.SelectableRoles)
             {
