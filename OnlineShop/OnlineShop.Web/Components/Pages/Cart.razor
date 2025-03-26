@@ -14,7 +14,7 @@
 <FluentStack Orientation="Orientation.Vertical">
 	<FluentStack Orientation="Orientation.Horizontal" HorizontalAlignment="HorizontalAlignment.SpaceBetween">
 		<h1>Your Cart</h1>
-		<FluentStack Orientation="Orientation.Horizontal" HorizontalAlignment="HorizontalAlignment.End" VerticalAlignment="VerticalAlignment.Center">
+		<FluentStack Orientation="Orientation.Horizontal" HorizontalAlignment="HorizontalAlignment.End" VerticalAlignment="VerticalAlignment.Center" Wrap=true>
 			<div class="cart-price-info">
 				<div class="cart-price-info-text">Total Price:</div> 
 				€ @totalPriceCart
@@ -23,12 +23,12 @@
 		</FluentStack>
 	</FluentStack>
 	<FluentStack>
-		<FluentDataGrid AutoFit="true" Items="cartItems" ColumnResizeLabels="ColumnResizeLabels.Default" TGridItem="CartItemDTO" ResizableColumns="true" OnCellClick="HandleCellClick" RowSize="DataGridRowSize.Medium">
+		<FluentDataGrid Class="fluent-datagrid-cart" AutoFit="true" Items="cartItems" ColumnResizeLabels="ColumnResizeLabels.Default" TGridItem="CartItemDTO" ResizableColumns="true" OnCellClick="HandleCellClick" RowSize="DataGridRowSize.Medium">
 			<PropertyColumn Style="cursor: pointer;" Property="@(p => p.Product.Name)" Sortable="true" />
-			<PropertyColumn Property="@(p => p.Product.Description)" Sortable="true" Width="15rem" />
-			<PropertyColumn Property="@(p => p.Product.Manufacturer)" Sortable="true" />
-			<PropertyColumn Property="@(p => p.Product.Price)" Sortable="true" />
-			<PropertyColumn Property="@(p => p.Price)" Sortable="true" />
+			<PropertyColumn Class="fluent-table-invisible" Property="@(p => p.Product.Description)" Sortable="true" Width="15rem" />
+			<PropertyColumn Class="fluent-table-invisible" Property="@(p => p.Product.Manufacturer)" Sortable="true" />
+			<PropertyColumn Class="fluent-table-invisible" Property="@(p => p.Product.Price)" Sortable="true" />
+			<PropertyColumn Class="fluent-table-invisible" Property="@(p => p.Price)" Sortable="true" />
 			<TemplateColumn Width="9%" Title="Quantity">
 				<FluentStack Orientation="Orientation.Horizontal">
 					<FluentButton Style="height: 100%;" Appearance="Appearance.Outline" OnClick="(() => UpdateQuantity(context, -1))"><FluentIcon Value="@(new Icons.Regular.Size20.Subtract())" /></FluentButton>
@@ -68,7 +68,7 @@
 
 	private void HandleCellClick(FluentDataGridCell<CartItemDTO> cell)
 	{
-		if (cell.GridColumn == 1)
+		if (cell.GridColumn == 1 && cell.CellType != DataGridCellType.ColumnHeader)
 		{
 			RedirectTo($"product/{cell.Item.Product.Id}");
 		}

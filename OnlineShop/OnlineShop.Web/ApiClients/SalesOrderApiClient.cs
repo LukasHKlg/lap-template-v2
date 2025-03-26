@@ -12,11 +12,13 @@ public class SalesOrderApiClient
 {
     private HttpClient _httpClient;
     private readonly IHttpContextAccessor _httpContextAccessor;
+    private readonly ILogger<SalesOrderApiClient> _logger;
 
-    public SalesOrderApiClient(IHttpClientFactory httpClientFactory, IHttpContextAccessor httpContextAccessor)
+    public SalesOrderApiClient(IHttpClientFactory httpClientFactory, IHttpContextAccessor httpContextAccessor , ILogger<SalesOrderApiClient> logger)
     {
         _httpClient = httpClientFactory.CreateClient("ApiClient");
         _httpContextAccessor = httpContextAccessor;
+        _logger = logger;
     }
 
     public async Task<string> GetOrderInvoiceAsync(SalesOrderDTO salesOrder, CancellationToken cancellationToken = default)
@@ -68,6 +70,80 @@ public class SalesOrderApiClient
         catch (Exception)
         {
 
+            throw;
+        }
+    }
+
+    public async Task<List<SalesOrderDTO>> GetSalesOrdersForCustomer(CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            Helpers.Helpers.GetUserAuthToken(_httpContextAccessor.HttpContext, ref _httpClient);
+
+            string requestUrl = $"/api/salesorders/ordersuser";
+
+            var response = await _httpClient.GetFromJsonAsync<List<SalesOrderDTO>>(requestUrl, cancellationToken);
+
+            if (response != null)
+            {
+                return response;
+            }
+            else return null;
+        }
+        catch (Exception)
+        {
+
+            throw;
+        }
+    }
+    
+    public async Task<PaginatedList<SalesOrderDTO>> GetPaginatedSalesOrders(int pageIndex = 1, int pageSize = 20, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            Helpers.Helpers.GetUserAuthToken(_httpContextAccessor.HttpContext, ref _httpClient);
+
+            string requestUrl = $"/api/salesorders?pageIndex={pageIndex}&pageSize={pageSize}";
+
+            var response = await _httpClient.GetFromJsonAsync<PaginatedList<SalesOrderDTO>>(requestUrl, cancellationToken);
+
+            if (response != null)
+            {
+                return response;
+            }
+            else return null;
+        }
+        catch (Exception)
+        {
+
+            throw;
+        }
+    }
+
+    public async Task<bool> UpadateShippedDate(SalesOrderDTO orderToUpdate, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            Helpers.Helpers.GetUserAuthToken(_httpContextAccessor.HttpContext, ref _httpClient);
+
+            string requestUrl = $"/api/salesorders/{orderToUpdate.Id}";
+
+            var response = await _httpClient.PutAsJsonAsync<SalesOrderDTO>(requestUrl, orderToUpdate, cancellationToken);
+
+            if (response.IsSuccessStatusCode)
+            {
+                return response.IsSuccessStatusCode;
+            }
+            else
+            {
+                var responseMsg = await response.Content.ReadAsStringAsync();
+                _logger.LogError("Error updating shipped date. Response Msg: " + responseMsg);
+                return response.IsSuccessStatusCode;
+            }
+        }
+        catch (Exception)
+        {
+            
             throw;
         }
     }

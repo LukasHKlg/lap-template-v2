@@ -248,4 +248,19 @@ code {
     .orderview fluent-text-field {
         width: 7rem;
     }
+
+    .fluent-table-invisible{
+        display: none !important;
+    }
+    .fluent-datagrid-orders {
+        grid-template-columns: 0 0 1fr 1fr 0 1fr 1fr !important;
+    }
+
+    .fluent-datagrid-cart {
+        grid-template-columns: 1fr 0 0 0 0 1fr 1fr !important;
+    }
+    .fluent-datagrid-orderoverview {
+        grid-template-columns: 1fr 0 0 1fr 1fr !important;
+    }
+
 }

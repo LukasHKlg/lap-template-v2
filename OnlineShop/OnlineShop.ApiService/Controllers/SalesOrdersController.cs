@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IdentityModel.Tokens.Jwt;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
@@ -13,6 +14,7 @@ using OnlineShop.ApiService.Services;
 using OnlineShop.Shared.DTOs;
 using OnlineShop.Shared.Models;
 using QuestPDF.Fluent;
+using QuestPDF.Helpers;
 
 namespace OnlineShop.ApiService.Controllers
 {
@@ -35,9 +37,68 @@ namespace OnlineShop.ApiService.Controllers
         // GET: api/SalesOrders
         [HttpGet]
         [Authorize(Roles = "Admin")]
-        public async Task<ActionResult<IEnumerable<SalesOrder>>> GetSalesOrders()
+        public async Task<ActionResult<PaginatedList<SalesOrderDTO>>> GetSalesOrders(int pageIndex, int pageSize)
         {
-            return await _context.SalesOrders.ToListAsync();
+            var salesOrders = await _context.SalesOrders
+                .OrderBy(b => b.Id)
+                .Skip((pageIndex - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            if (salesOrders == null || salesOrders.Count == 0) return NotFound();
+
+            var salesOrdersDto = salesOrders.Select(x => new SalesOrderDTO()
+            {
+                OrderItems = _context.OrderDetails.Where(y => y.SalesOrder.Id == x.Id).Select(z => new OrderDetailDTO() { Id = z.Id, Product = new ProductDTO() { Id = z.Product.Id }, Quantity = z.Quantity, UnitPrice = z.UnitPrice }).ToList(),
+                Id = x.Id,
+                ShippedDate = x.ShippedDate,
+                OrderDate = x.OrderDate,
+                ShipName = x.ShipName,
+            }).ToList();
+
+            var count = await _context.SalesOrders.CountAsync();
+            var totalPages = (int)Math.Ceiling(count / (double)pageSize);
+
+            return new PaginatedList<SalesOrderDTO>(salesOrdersDto, pageIndex, totalPages);
+        }
+
+        // GET: api/SalesOrders/ordersuser
+        [HttpGet]
+        [Route("ordersuser")]
+        public async Task<ActionResult<IEnumerable<SalesOrderDTO>>> GetSalesOrdersForCustomer()
+        {
+            //get users token
+            JwtSecurityToken jwtToken = new();
+            if (HttpContext.Request.Headers.TryGetValue("Authorization", out var authHeader))
+            {
+                //"Bearer {token}"
+                var token = authHeader.ToString().Split(" ").Last();
+
+                // decode the JWT token
+                var handler = new JwtSecurityTokenHandler();
+                jwtToken = handler.ReadJwtToken(token);
+            }
+            else NotFound();
+
+            //get ApplicationUser user id
+            var userid = jwtToken.Subject;
+
+            var customer = await _context.Customers.FirstOrDefaultAsync(x => x.ApplicationUser.UserId == userid);
+
+            if (customer == null) return NotFound();
+
+            var ordersForUser = _context.SalesOrders.Where(x => x.Customer.Id == customer.Id).ToList();
+
+            var ordersForUserDto = ordersForUser.Select(x => new SalesOrderDTO()
+            {
+                OrderItems = _context.OrderDetails.Where(y => y.SalesOrder.Id == x.Id).Select(z => new OrderDetailDTO() {Id = z.Id, Product = new ProductDTO() { Id = z.Product.Id }, Quantity = z.Quantity, UnitPrice = z.UnitPrice }).ToList(),
+                Id = x.Id,
+                ShippedDate = x.ShippedDate,
+                OrderDate = x.OrderDate,
+                ShipName = x.ShipName,
+            }).ToList();
+
+            return ordersForUserDto;
         }
 
         // GET: api/SalesOrders/5
@@ -54,36 +115,43 @@ namespace OnlineShop.ApiService.Controllers
             return salesOrder;
         }
 
-        //// PUT: api/SalesOrders/5
-        //// To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-        //[HttpPut("{id}")]
-        //public async Task<IActionResult> PutSalesOrder(int id, SalesOrder salesOrder)
-        //{
-        //    if (id != salesOrder.Id)
-        //    {
-        //        return BadRequest();
-        //    }
+        // PUT: api/SalesOrders/5
+        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
+        [HttpPut("{id}")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> PutSalesOrder(int id, SalesOrderDTO salesOrder)
+        {
+            if (id != salesOrder.Id)
+            {
+                return BadRequest();
+            }
 
-        //    _context.Entry(salesOrder).State = EntityState.Modified;
+            var order = await _context.SalesOrders.FindAsync(id);
 
-        //    try
-        //    {
-        //        await _context.SaveChangesAsync();
-        //    }
-        //    catch (DbUpdateConcurrencyException)
-        //    {
-        //        if (!SalesOrderExists(id))
-        //        {
-        //            return NotFound();
-        //        }
-        //        else
-        //        {
-        //            throw;
-        //        }
-        //    }
+            if (order == null) return NotFound();
 
-        //    return NoContent();
-        //}
+            order.ShippedDate = salesOrder.ShippedDate;
+
+            _context.Entry(order).State = EntityState.Modified;
+
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                if (!SalesOrderExists(id))
+                {
+                    return NotFound();
+                }
+                else
+                {
+                    throw;
+                }
+            }
+
+            return NoContent();
+        }
 
         // POST: api/SalesOrders
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
@@ -108,7 +176,7 @@ namespace OnlineShop.ApiService.Controllers
                     BillingZipCode = salesOrderdto.BillingZipCode,
                     Customer = user,
                     ShipCity = salesOrderdto.ShipCity,
-                    OrderDate = salesOrderdto.OrderDate,
+                    OrderDate = (DateTime)salesOrderdto.OrderDate,
                     ShipCountry = salesOrderdto.ShipCountry,
                     ShipHouseNum = salesOrderdto.ShipHouseNum,
                     ShipName = salesOrderdto.ShipName,

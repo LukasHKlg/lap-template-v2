@@ -14,10 +14,13 @@
     </FluentStack>
     <FluentStack Orientation="Orientation.Vertical">
         @ChildContent
-        <FluentButton OnClick="DownloadInvoice"><FluentIcon Value="@(new Icons.Regular.Size20.ArrowDownload())" /> Download Invoice</FluentButton>
     </FluentStack>
-    <FluentStack>
-        <FluentButton OnClick="@(() => RedirectTo("/"))">Continue Shopping</FluentButton>
+    <FluentDivider />
+    <FluentDivider />
+    <FluentStack HorizontalAlignment="HorizontalAlignment.Center" >
+        <FluentButton Appearance="Appearance.Neutral" OnClick="DownloadInvoice" IconEnd="@(new Icons.Regular.Size20.ArrowDownload())">Download Invoice</FluentButton>
+
+        <FluentButton Appearance="Appearance.Neutral" OnClick="@(() => RedirectTo("/"))">Continue Shopping</FluentButton>
     </FluentStack>
 </FluentStack>
 

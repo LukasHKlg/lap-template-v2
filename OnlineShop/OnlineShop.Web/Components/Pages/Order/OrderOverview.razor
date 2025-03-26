@@ -27,10 +27,10 @@ else
             <FluentStack HorizontalAlignment="HorizontalAlignment.Center" Orientation="Orientation.Vertical">
                 <h3>Products</h3>
                 <FluentStack Width="70%">
-                    <FluentDataGrid AutoFit="true" Items="Customer.Cart?.CartItems?.AsQueryable()" ColumnResizeLabels="ColumnResizeLabels.Default" TGridItem="CartItemDTO" ResizableColumns="true" OnCellClick="HandleCellClick" RowSize="DataGridRowSize.Medium">
+                    <FluentDataGrid Class="fluent-datagrid-orderoverview" AutoFit="true" Items="Customer.Cart?.CartItems?.AsQueryable()" ColumnResizeLabels="ColumnResizeLabels.Default" TGridItem="CartItemDTO" ResizableColumns="true" OnCellClick="HandleCellClick" RowSize="DataGridRowSize.Medium">
                         <PropertyColumn Style="cursor: pointer;" Property="@(p => p.Product.Name)" Sortable="true" />
-                        <PropertyColumn Property="@(p => p.Product.Description)" Sortable="true" Width="15rem" />
-                        <PropertyColumn Property="@(p => p.Product.Manufacturer)" Sortable="true" />
+                        <PropertyColumn Class="fluent-table-invisible" Property="@(p => p.Product.Description)" Sortable="true" Width="15rem" />
+                        <PropertyColumn Class="fluent-table-invisible" Property="@(p => p.Product.Manufacturer)" Sortable="true" />
                         <PropertyColumn Property="@(p => p.Product.Price)" Sortable="true" />
                         <PropertyColumn Property="@(p => p.Price)" Sortable="true" />
                     </FluentDataGrid>
@@ -94,10 +94,10 @@ else
             <FluentStack HorizontalAlignment="HorizontalAlignment.Center" Orientation="Orientation.Vertical">
                 <h3>Products</h3>
                 <FluentStack Width="70%">
-                    <FluentDataGrid AutoFit="true" Items="Customer.Cart?.CartItems?.AsQueryable()" ColumnResizeLabels="ColumnResizeLabels.Default" TGridItem="CartItemDTO" ResizableColumns="true" OnCellClick="HandleCellClick" RowSize="DataGridRowSize.Medium">
+                    <FluentDataGrid Class="fluent-datagrid-orderoverview" AutoFit="true" Items="Customer.Cart?.CartItems?.AsQueryable()" ColumnResizeLabels="ColumnResizeLabels.Default" TGridItem="CartItemDTO" ResizableColumns="true" OnCellClick="HandleCellClick" RowSize="DataGridRowSize.Medium">
                         <PropertyColumn Style="cursor: pointer;" Property="@(p => p.Product.Name)" Sortable="true" />
-                        <PropertyColumn Property="@(p => p.Product.Description)" Sortable="true" Width="15rem" />
-                        <PropertyColumn Property="@(p => p.Product.Manufacturer)" Sortable="true" />
+                        <PropertyColumn Class="fluent-table-invisible" Property="@(p => p.Product.Description)" Sortable="true" Width="15rem" />
+                        <PropertyColumn Class="fluent-table-invisible" Property="@(p => p.Product.Manufacturer)" Sortable="true" />
                         <PropertyColumn Property="@(p => p.Product.Price)" Sortable="true" />
                         <PropertyColumn Property="@(p => p.Price)" Sortable="true" />
                     </FluentDataGrid>
@@ -240,7 +240,7 @@ else
 
     private void HandleCellClick(FluentDataGridCell<CartItemDTO> cell)
     {
-        if (cell.GridColumn == 1)
+        if (cell.GridColumn == 1 && cell.CellType != DataGridCellType.ColumnHeader)
         {
             RedirectTo($"product/{cell.Item.Product.Id}");
         }

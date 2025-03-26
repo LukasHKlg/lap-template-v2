@@ -1,8 +1,10 @@
 ﻿@using OnlineShop.Shared.Models
+@using System.Security.Authentication
 @rendermode InteractiveServer
 
 @inject AuthenticationStateProvider AuthStateProvider
 @inject CartApiClient CartApiClient
+@inject NavigationManager NavManager
 
 <div class="navmenu">
     <input type="checkbox" title="Menu expand/collapse toggle" id="navmenu-toggle" class="navmenu-icon" />
@@ -15,13 +17,14 @@
             </FluentCounterBadge>
             <FluentNavGroup Expanded="false" Title="Account" Icon="@(new Icons.Regular.Size20.Person())" IconColor="Color.Accent">
                 <FluentNavLink Href="/user" Icon="@(new Icons.Regular.Size20.PersonAccounts())" IconColor="Color.Accent">Profile</FluentNavLink>
-                <FluentNavLink Href="/user" Icon="@(new Icons.Regular.Size20.AppsList())" IconColor="Color.Accent">My Orders</FluentNavLink>
+                <FluentNavLink Href="/user/myorders" Icon="@(new Icons.Regular.Size20.AppsList())" IconColor="Color.Accent">My Orders</FluentNavLink>
             </FluentNavGroup>
             <AuthorizeView Roles="@Roles.Admin">
                 <FluentNavGroup Expanded="false" Title="Admin" Icon="@(new Icons.Regular.Size20.EditPerson())" IconColor="Color.Accent">
                     <FluentNavLink Href="/admin/products/add" Icon="@(new Icons.Regular.Size20.Add())" IconColor="Color.Accent">Add Product</FluentNavLink>
                     <FluentNavLink Href="/admin/products/editdelete" Icon="@(new Icons.Regular.Size20.Edit())" IconColor="Color.Accent">Edit/Delete Product</FluentNavLink>
                     <FluentNavLink Href="/admin/users" Icon="@(new Icons.Regular.Size20.AppsListDetail())" IconColor="Color.Accent">User Management</FluentNavLink>
+                    <FluentNavLink Href="/admin/orders" Icon="@(new Icons.Regular.Size20.AppsListDetail())" IconColor="Color.Accent">Orders</FluentNavLink>
                 </FluentNavGroup>
             </AuthorizeView>
         </FluentNavMenu>
@@ -37,19 +40,34 @@
     {
         if (firstRender)
         {
-            //todo get cart for user if logged in
-            var user = await AuthStateProvider.GetAuthenticationStateAsync();
-
-            if (user == null || !user.User.Identity.IsAuthenticated)
+            try
             {
-                cartItemsCount = 0;
-                return;
+                //todo get cart for user if logged in
+                var user = await AuthStateProvider.GetAuthenticationStateAsync();
+
+                if (user == null || !user.User.Identity.IsAuthenticated)
+                {
+                    cartItemsCount = 0;
+                    return;
+                }
+
+                var cart = await CartApiClient.GetCartDetailsAsync();
+                cartItemsCount = cart.CartItems.Count();
+
+                StateHasChanged();
             }
-
-            var cart = await CartApiClient.GetCartDetailsAsync();
-            cartItemsCount = cart.CartItems.Count();
-
-            StateHasChanged();
+            catch (HttpRequestException ex)
+            {
+                if(ex.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                {
+                    NavManager.NavigateTo("/logout");
+                }
+            }
+            catch (Exception)
+            {
+                
+                throw;
+            }
         }
     }
 }
