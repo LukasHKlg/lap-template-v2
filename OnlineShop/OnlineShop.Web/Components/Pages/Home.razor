@@ -127,14 +127,23 @@
 	{
 		var currentItems = productsPagination.Items;
 
-		var newProducts = await ProductApiClient.GetProductsAsync(pageIndex +1, pageSize);
-		currentItems.AddRange(newProducts.Items);
-		newProducts.Items = currentItems.DistinctBy(i => i.Id).ToList();
+		PaginatedList<ProductDTO> newProducts = null;
 
-		productsPagination = newProducts;
+		if (!string.IsNullOrEmpty(_searchValue))
+		{
+			newProducts = await ProductApiClient.GetProductsForSearchAsync(_searchValue, pageIndex + 1, pageSize);
+		}
+		else newProducts = await ProductApiClient.GetProductsAsync(pageIndex +1, pageSize);
 
-		pageIndex = productsPagination.PageIndex;
+		if(newProducts != null)
+		{
+			currentItems.AddRange(newProducts.Items);
+			newProducts.Items = currentItems.DistinctBy(i => i.Id).ToList();
 
+			productsPagination = newProducts;
+
+			pageIndex = productsPagination.PageIndex;
+		}		
 		StateHasChanged();
 	}
 
