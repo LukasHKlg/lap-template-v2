@@ -1,0 +1,142 @@
+﻿@page "/admin/orders"
+@using OnlineShop.Shared.Models
+
+@attribute [Authorize(Roles = "Admin")]
+
+@rendermode InteractiveServer
+
+
+@inject SalesOrderApiClient SalesOrderApiClient
+@inject IToastService ToastService
+@inject NavigationManager NavManager
+@inject IJSRuntime JS
+@inject ILogger<Orders> _logger
+
+
+<FluentStack Orientation="Orientation.Vertical">
+    <h1>All Orders</h1>
+    <FluentStack>
+        <FluentDataGrid Class="fluent-datagrid-orders" MultiLine="true" Items="salesOrders?.Items?.AsQueryable()" RowSize="DataGridRowSize.Medium">
+            <PropertyColumn Sortable="true" InitialSortDirection="SortDirection.Descending" Class="fluent-table-invisible" Property="@(p => p.Id)" />
+            <PropertyColumn Class="fluent-table-invisible" Title="Recipient" Property="@(p => p.ShipName)" />
+            <PropertyColumn Sortable="true" Property="@(p => p.OrderDate)" />
+            <TemplateColumn Title="Shipping Date">
+                @if (context.ShippedDate != null)
+                {
+                    <FluentLabel>@context.ShippedDate</FluentLabel>
+                }
+                else
+                {
+                    <FluentButton OnClick="@(() => UpdateShippedDate(context))"><FluentIcon Value="@(new Icons.Regular.Size20.Checkmark())" /></FluentButton>
+                }
+            </TemplateColumn>
+            <PropertyColumn Class="fluent-table-invisible" Title="Products" Property="@(p => p.OrderItems.Count())" />
+            <PropertyColumn Title="Total" Property="@(p => p.OrderItems.Sum(x => (x.Quantity * x.UnitPrice)))" />
+            <TemplateColumn>
+                <FluentButton OnClick="@(() => DownloadInvoice(context))"><FluentIcon Value="@(new Icons.Regular.Size20.ArrowDownload())" /></FluentButton>
+            </TemplateColumn>
+        </FluentDataGrid>
+    </FluentStack>
+
+    @if (salesOrders?.HasNextPage ?? false)
+    {
+        <FluentGridItem Justify="JustifyContent.Center" xs="12">
+            <FluentButton Appearance="Appearance.Lightweight" OnClick="LoadMoreOrders">Load More</FluentButton>
+        </FluentGridItem>
+    }
+</FluentStack>
+
+
+@code {
+    private PaginatedList<SalesOrderDTO> salesOrders { get; set; }
+
+    private IJSObjectReference downloadScript;
+
+    private int pageIndex = 0;
+    private int pageSize = 20;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            salesOrders = await SalesOrderApiClient.GetPaginatedSalesOrders(pageIndex +1, pageSize);
+            pageIndex = salesOrders.PageIndex;
+            if (salesOrders == null)
+            {
+                ToastService.ShowError("There was a problem while getting the orders. Please try again!");
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError("Error while trying to get list of all sales orders for admin. Error: " + ex.ToString());
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            downloadScript = await JS.InvokeAsync<IJSObjectReference>("import", "/js/filedownload.js");
+        }
+    }
+
+    private async Task DownloadInvoice(SalesOrderDTO order)
+    {
+        try
+        {
+            var url = await SalesOrderApiClient.GetOrderInvoiceAsync(order);
+            if (!string.IsNullOrEmpty(url))
+            {
+                await downloadScript.InvokeVoidAsync("downloadFile", url, $"invoice_{order.Id}.pdf");
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError("Error wile trying downloading invoice. Error:" + ex.ToString());
+        }
+    }
+
+    private async Task LoadMoreOrders()
+    {
+        var currentItems = salesOrders.Items;
+
+        var newSales = await SalesOrderApiClient.GetPaginatedSalesOrders(pageIndex + 1, pageSize);
+        currentItems.AddRange(newSales.Items);
+        newSales.Items = currentItems.DistinctBy(i => i.Id).ToList();
+
+        salesOrders = newSales;
+
+        pageIndex = salesOrders.PageIndex;
+
+        StateHasChanged();
+    }
+
+    private async Task UpdateShippedDate(SalesOrderDTO order)
+    {
+        try
+        {
+            //add orderItems because of validation
+            order.OrderItems = [new () {Product = new ProductDTO() {Name = "x", Category = "x", Description = "x", Manufacturer = "x" }}];
+            order.ShippedDate = DateTime.Now;
+
+            var updatedOrderSuccess = await SalesOrderApiClient.UpadateShippedDate(order);
+
+            if (!updatedOrderSuccess) ToastService.ShowError($"Error updating ShippedDate for order {order.Id}. Please try again!");
+
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError($"Error while updating ShippedDate for order {order.Id}. Error: " + ex.ToString());
+            ToastService.ShowError($"Error updating ShippedDate for order {order.Id}. Please try again!");
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (downloadScript != null)
+        {
+            await downloadScript.DisposeAsync();
+        }
+    }
+}

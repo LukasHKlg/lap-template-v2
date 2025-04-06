@@ -1,0 +1,37 @@
+﻿@inject NavigationManager NavManager
+@inject AuthenticationStateProvider AuthStateProvider
+
+
+@if (_isAuthenticated)
+{
+	@ChildContent
+}
+
+
+@code {
+	[Parameter] public RenderFragment? ChildContent { get; set; }
+	[Parameter] public string[]? RequiredRoles { get; set; } = [];
+
+	private bool _isAuthenticated;
+
+	protected override async Task OnAfterRenderAsync(bool firstRender)
+	{
+		var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+		var user = authState.User;
+
+		_isAuthenticated = user.Identity?.IsAuthenticated ?? false;
+
+		bool hasRequiredRole = false;
+		foreach(var role in RequiredRoles){
+			if(user.IsInRole(role)){
+				hasRequiredRole = true;
+				break;
+			}
+		}
+
+		if (!_isAuthenticated || hasRequiredRole)
+		{
+			NavManager.NavigateTo("login", forceLoad: true);
+		}
+	}
+}

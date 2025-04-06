@@ -1,0 +1,82 @@
+﻿@implements IDialogContentComponent<ProductDTO>
+
+@attribute [Authorize(Roles = "Admin")]
+
+<!-- Header -->
+<FluentDialogHeader ShowDismiss="true">
+    <FluentStack VerticalAlignment="VerticalAlignment.Center">
+        <FluentIcon Value="@(new Icons.Regular.Size24.WindowApps())" />
+        <FluentLabel Typo="Typography.PaneHeader">
+            @Dialog.Instance.Parameters.Title
+        </FluentLabel>
+    </FluentStack>
+</FluentDialogHeader>
+
+<!-- Body -->
+<FluentDialogBody>
+    <EditForm EditContext="@_editContext" FormName="editContent">
+        <FluentStack Orientation="Orientation.Vertical">
+            <DataAnnotationsValidator />
+
+            <ValidationMessage For="@(() => Content.Name)" />
+            <FluentTextField Style="width: 100%" @bind-Value="Content.Name" TextFieldType="TextFieldType.Text" Placeholder="Content Name" Name="Content.Name" Label="Name" />
+
+            <ValidationMessage For="@(() => Content.Description)" />
+            <FluentTextArea Resize="TextAreaResize.Vertical" Style="width: 100%;" @bind-Value="Content.Description" TextFieldType="TextFieldType.Text" Placeholder="Content Description" Name="Content.Description" Label="Description" />
+
+            <ValidationMessage For="@(() => Content.Manufacturer)" />
+            <FluentTextField Style="width: 100%" @bind-Value="Content.Manufacturer" TextFieldType="TextFieldType.Text" Placeholder="Content Manufacturer" Name="Content.Manufacturer" Label="Manufacturer" />
+
+            <ValidationMessage For="@(() => Content.Category)" />
+            <FluentTextField Style="width: 100%" @bind-Value="Content.Category" TextFieldType="TextFieldType.Text" Placeholder="Content Category" Name="Content.Category" Label="Category" />
+
+            <ValidationMessage For="@(() => Content.Price)" />
+            <FluentNumberField Style="width: 100%" @bind-Value="Content.Price" Placeholder="Content Price" Name="Content.Price" Label="Price" />
+
+            <ValidationMessage For="@(() => Content.Stock)" />
+            <FluentNumberField Style="width: 100%" @bind-Value="Content.Stock" Placeholder="Content Stock" Name="Content.Stock" Label="Stock" />
+        </FluentStack>
+    </EditForm>
+</FluentDialogBody>
+
+<!-- Footer -->
+<FluentDialogFooter>
+    <FluentButton Appearance="Appearance.Accent"
+    Disabled="@(!_editContext.Validate())"
+    OnClick="@SaveAsync">
+        Save
+    </FluentButton>
+    <FluentButton Appearance="Appearance.Neutral"
+    OnClick="@CancelAsync">
+        Cancel
+    </FluentButton>
+</FluentDialogFooter>
+
+@code
+{
+    private EditContext _editContext = default!;
+
+    [CascadingParameter]
+    public FluentDialog Dialog { get; set; } = default!;
+
+    [Parameter]
+    public ProductDTO Content { get; set; } = default!;
+
+    protected override void OnInitialized()
+    {
+        _editContext = new EditContext(Content);
+    }
+
+    private async Task SaveAsync()
+    {
+        if (_editContext.Validate())
+        {
+            await Dialog.CloseAsync(Content);
+        }
+    }
+
+    private async Task CancelAsync()
+    {
+        await Dialog.CancelAsync();
+    }
+}

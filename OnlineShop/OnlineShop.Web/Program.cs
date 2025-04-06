@@ -1,5 +1,12 @@
-using OnlineShop.Web;
 using OnlineShop.Web.Components;
+using Microsoft.FluentUI.AspNetCore.Components;
+using Blazored.LocalStorage;
+using OnlineShop.Web.Services;
+using Microsoft.AspNetCore.Components.Authorization;
+using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using OnlineShop.Web.ApiClients;
+using OnlineShop.Web.Helpers;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -10,34 +17,71 @@ builder.AddServiceDefaults();
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
+builder.Services.AddRazorPages();
+
+//FluentUI
+builder.Services.AddFluentUIComponents();
+builder.Services.AddDataGridEntityFrameworkAdapter();
+
 builder.Services.AddOutputCache();
 
-builder.Services.AddHttpClient<WeatherApiClient>(client =>
+
+//Auth
+builder.Services.AddCascadingAuthenticationState();
+
+builder.Services.AddHttpContextAccessor();
+
+builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+    .AddCookie(options =>
     {
-        // This URL uses "https+http://" to indicate HTTPS is preferred over HTTP.
-        // Learn more about service discovery scheme resolution at https://aka.ms/dotnet/sdschemes.
-        client.BaseAddress = new("https+http://apiservice");
+        //options.Cookie.Expiration = TimeSpan.FromMinutes(120);
+        options.Cookie.Name = "AuthTokenCookie";
+        options.ExpireTimeSpan = TimeSpan.FromMinutes(120);
+        options.LoginPath = "/login";
     });
+
+builder.Services.AddAuthorization();
+
+builder.Services.AddHttpClient("ApiClient", client =>
+{
+    client.BaseAddress = new("https+http://apiservice");
+});
+
+
+builder.Services.AddScoped<WeatherApiClient>();
+builder.Services.AddScoped<ProductApiClient>();
+builder.Services.AddScoped<CartApiClient>();
+builder.Services.AddScoped<CustomerApiClient>();
+builder.Services.AddTransient<AppsettingsConfigService>();
+builder.Services.AddScoped<SalesOrderApiClient>();
 
 var app = builder.Build();
 
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
 
 app.UseHttpsRedirection();
+app.UseStaticFiles();
+
+app.UseRouting();
+
+// Authentication and authorization middleware
+app.UseAuthentication();
+app.UseAuthorization();
+
+app.UseAntiforgery();
+app.UseOutputCache();
 
 app.UseStaticFiles();
-app.UseAntiforgery();
-
-app.UseOutputCache();
+app.MapRazorPages();
 
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 
+// Map endpoints
 app.MapDefaultEndpoints();
 
 app.Run();

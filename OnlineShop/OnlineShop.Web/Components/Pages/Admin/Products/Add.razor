@@ -1,0 +1,121 @@
+﻿@rendermode InteractiveServer
+@page "/admin/products/add"
+
+@attribute [Authorize(Roles = "Admin")]
+
+<PageTitle>Admin - Add Product</PageTitle>
+
+@inject IToastService ToastService
+@inject NavigationManager NavManager
+@inject ProductApiClient ProductApiClient
+@inject ILogger<Add> _logger
+
+<FluentStack Orientation="Orientation.Vertical" HorizontalAlignment="HorizontalAlignment.Center">
+	<h1>Add Product</h1>
+	<EditForm Model="Product" OnValidSubmit="Submit" FormName="AddProduct" id="AddProduct">
+		<FluentStack Orientation="Orientation.Vertical">
+			<DataAnnotationsValidator />
+
+			<ValidationMessage For="@(() => Product.Name)" />
+			<FluentTextField Style="width: 100%" @bind-Value="Product.Name" TextFieldType="TextFieldType.Text" Placeholder="Product Name" Name="Product.Name" Label="Name" />
+
+			<ValidationMessage For="@(() => Product.Description)" />
+			<FluentTextArea Resize="TextAreaResize.Vertical" Style="width: 100%;" @bind-Value="Product.Description" TextFieldType="TextFieldType.Text" Placeholder="Product Description" Name="Product.Description" Label="Description" />
+
+			<ValidationMessage For="@(() => Product.Manufacturer)" />
+			<FluentTextField Style="width: 100%" @bind-Value="Product.Manufacturer" TextFieldType="TextFieldType.Text" Placeholder="Product Manufacturer" Name="Product.Manufacturer" Label="Manufacturer" />
+
+			<ValidationMessage For="@(() => Product.Category)" />
+			<FluentTextField Style="width: 100%" @bind-Value="Product.Category" TextFieldType="TextFieldType.Text" Placeholder="Product Category" Name="Product.Category" Label="Category" />
+
+			<ValidationMessage For="@(() => Product.Price)" />
+			<FluentNumberField Style="width: 100%" @bind-Value="Product.Price" Placeholder="Product Price" Name="Product.Price" Label="Price" />
+
+			<ValidationMessage For="@(() => Product.Stock)" />
+			<FluentNumberField Style="width: 100%" @bind-Value="Product.Stock" Placeholder="Product Stock" Name="Product.Stock" Label="Stock" />
+
+			<InputFile OnChange="HandleFileSelected" accept=".jpg" />
+
+
+			<FluentStack HorizontalAlignment="HorizontalAlignment.Center" Style="margin-top: 2rem;">
+				<FluentButton Disabled="FileUploadNotFinished" Appearance="Appearance.Accent" Id="submit" Type="ButtonType.Submit" FormId="AddProduct">Add New Product</FluentButton>
+			</FluentStack>
+		</FluentStack>
+	</EditForm>
+</FluentStack>
+
+
+@code {
+	[SupplyParameterFromForm]
+	private ProductDTO? Product { get; set; }
+
+	private bool FileUploadNotFinished = true;
+	IBrowserFile file;
+	int? progressPercent;
+	string? progressTitle;
+
+	protected override async Task OnInitializedAsync()
+	{
+		Product = new();
+	}
+
+	private async Task Submit()
+	{
+		try
+		{
+			if (FileUploadNotFinished)
+			{
+				ToastService.ShowWarning("You have to upload a picture!");
+				return;
+			}
+
+			var newAddedProduct = await ProductApiClient.AddNewProductAsync(Product);
+
+			try
+			{
+				//upload file
+				var customFileName = newAddedProduct.Id + ".jpg";
+
+				using var content = new MultipartFormDataContent();
+				var streamContent = new StreamContent(file.OpenReadStream());
+				streamContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(file.ContentType);
+				content.Add(streamContent, "file", customFileName);
+
+				var uploadedPictureResponse = await ProductApiClient.UploadProductPicture(content);
+			}
+			catch (UnauthorizedAccessException ex)
+			{
+				ToastService.ShowError("Unauthorized. Please Login again!");
+				NavManager.NavigateTo("/logout");
+			}
+			catch (Exception)
+			{
+				//delete product if file upload failes
+				await ProductApiClient.DeleteProduct(newAddedProduct);
+			}
+
+
+			if (newAddedProduct != null) ToastService.ShowSuccess($"A new product has been added. {newAddedProduct.Name} with the id {newAddedProduct.Id}.");
+			Product = new();
+
+
+
+		}
+		catch (UnauthorizedAccessException ex)
+		{
+			ToastService.ShowError("Unauthorized. Please Login again!");
+			NavManager.NavigateTo("/logout");
+		}
+		catch (Exception ex)
+		{
+			ToastService.ShowError("Error while adding a product. Error: " + ex.ToString());
+			_logger.LogError("Erro while adding a product. Error: " + ex.ToString());
+		}
+	}
+
+	private async Task HandleFileSelected(InputFileChangeEventArgs e)
+	{
+		this.file = e.File;
+		FileUploadNotFinished = false;
+	}
+}

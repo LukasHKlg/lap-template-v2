@@ -1,29 +1,73 @@
-﻿<div class="top-row ps-3 navbar navbar-dark">
-    <div class="container-fluid">
-        <a class="navbar-brand" href="">OnlineShop</a>
-    </div>
-</div>
+﻿@using OnlineShop.Shared.Models
+@using System.Security.Authentication
+@rendermode InteractiveServer
 
-<input type="checkbox" title="Navigation menu" class="navbar-toggler" />
+@inject AuthenticationStateProvider AuthStateProvider
+@inject CartApiClient CartApiClient
+@inject NavigationManager NavManager
 
-<div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
-    <nav class="nav flex-column">
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-                <span class="bi bi-house-door-fill" aria-hidden="true"></span> Home
-            </NavLink>
-        </div>
-
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="counter">
-                <span class="bi bi-plus-square-fill" aria-hidden="true"></span> Counter
-            </NavLink>
-        </div>
-
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="weather">
-                <span class="bi bi-list-nested" aria-hidden="true"></span> Weather
-            </NavLink>
-        </div>
+<div class="navmenu">
+    <input type="checkbox" title="Menu expand/collapse toggle" id="navmenu-toggle" class="navmenu-icon" />
+    <label for="navmenu-toggle" class="navmenu-icon"><FluentIcon Value="@(new Icons.Regular.Size20.Navigation())" Color="Color.Fill" /></label>
+    <nav class="sitenav" aria-labelledby="main-menu">
+        <FluentNavMenu Id="main-menu" Collapsible="true" Width="250" Title="Navigation menu" @bind-Expanded="expanded" CustomToggle="true">
+            <FluentNavLink Href="/" Match="NavLinkMatch.All" Icon="@(new Icons.Regular.Size20.ShoppingBag())" IconColor="Color.Accent">Shop</FluentNavLink>
+            <FluentCounterBadge Count="cartItemsCount" Appearance="Appearance.Neutral" VerticalPosition="20">
+                <FluentNavLink Href="/cart" Icon="@(new Icons.Regular.Size20.Cart())" IconColor="Color.Accent">Shopping Cart</FluentNavLink>
+            </FluentCounterBadge>
+            <FluentNavGroup Expanded="false" Title="Account" Icon="@(new Icons.Regular.Size20.Person())" IconColor="Color.Accent">
+                <FluentNavLink Href="/user" Icon="@(new Icons.Regular.Size20.PersonAccounts())" IconColor="Color.Accent">Profile</FluentNavLink>
+                <FluentNavLink Href="/user/myorders" Icon="@(new Icons.Regular.Size20.AppsList())" IconColor="Color.Accent">My Orders</FluentNavLink>
+            </FluentNavGroup>
+            <AuthorizeView Roles="@Roles.Admin">
+                <FluentNavGroup Expanded="false" Title="Admin" Icon="@(new Icons.Regular.Size20.EditPerson())" IconColor="Color.Accent">
+                    <FluentNavLink Href="/admin/products/add" Icon="@(new Icons.Regular.Size20.Add())" IconColor="Color.Accent">Add Product</FluentNavLink>
+                    <FluentNavLink Href="/admin/products/editdelete" Icon="@(new Icons.Regular.Size20.Edit())" IconColor="Color.Accent">Edit/Delete Product</FluentNavLink>
+                    <FluentNavLink Href="/admin/users" Icon="@(new Icons.Regular.Size20.AppsListDetail())" IconColor="Color.Accent">User Management</FluentNavLink>
+                    <FluentNavLink Href="/admin/orders" Icon="@(new Icons.Regular.Size20.AppsListDetail())" IconColor="Color.Accent">Orders</FluentNavLink>
+                </FluentNavGroup>
+            </AuthorizeView>
+        </FluentNavMenu>
     </nav>
 </div>
+
+@code {
+    private bool expanded = false;
+
+    private int cartItemsCount = 0;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                //todo get cart for user if logged in
+                var user = await AuthStateProvider.GetAuthenticationStateAsync();
+
+                if (user == null || !user.User.Identity.IsAuthenticated)
+                {
+                    cartItemsCount = 0;
+                    return;
+                }
+
+                var cart = await CartApiClient.GetCartDetailsAsync();
+                cartItemsCount = cart.CartItems.Count();
+
+                StateHasChanged();
+            }
+            catch (HttpRequestException ex)
+            {
+                if(ex.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                {
+                    NavManager.NavigateTo("/logout");
+                }
+            }
+            catch (Exception)
+            {
+                
+                throw;
+            }
+        }
+    }
+}

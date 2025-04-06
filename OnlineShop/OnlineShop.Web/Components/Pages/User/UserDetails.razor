@@ -1,0 +1,318 @@
+﻿@rendermode InteractiveServer
+
+@page "/user"
+@using System.IdentityModel.Tokens.Jwt
+
+@inject IToastService ToastService
+@inject CustomerApiClient CustomerApiClient
+@inject NavigationManager NavManager
+@inject ILogger<UserDetails> _logger
+@inject AuthenticationStateProvider AuthStateProvider
+@inject IDialogService DialogService
+
+@attribute [Authorize]
+
+@if (customer == null)
+{
+	<div>Loading ...</div>
+}
+else
+{
+	<FluentStack Orientation="Orientation.Vertical" Wrap="true" HorizontalAlignment="HorizontalAlignment.Center" VerticalGap="30" Style="padding-bottom: 1.5rem; padding-top: 1.5rem">
+		<FluentStack Wrap="true" Orientation="Orientation.Horizontal" HorizontalAlignment="HorizontalAlignment.SpaceBetween">
+			<h1>My Profile</h1>
+			<FluentStack Width="30%" Orientation="Orientation.Vertical">
+				<FluentButton OnClick="@StartUserEdit">@editUserBtnText</FluentButton>
+				<FluentButton OnClick="@StartUserEdit" Disabled="!editUser">Delete Profile</FluentButton>
+			</FluentStack>
+
+		</FluentStack>
+
+		<EditForm style="width: 100%;" EditContext="@editContextUserProfile" FormName="EditProfile" OnValidSubmit="SubmitCustomerProfile">
+			<h3>Profile Information</h3>
+			@if (string.IsNullOrEmpty(customer.PhoneNumber) || string.IsNullOrEmpty(customer.FirstName) || string.IsNullOrEmpty(customer.LastName))
+			{
+				<div class="profile-information-warning">In order to buy something you need to provide the needed Profile Information!</div>
+			}
+			<DataAnnotationsValidator />
+
+			<FluentStack Wrap="true" Orientation="Orientation.Horizontal" HorizontalAlignment="HorizontalAlignment.Center">
+
+
+				<FluentStack Width="49%" Orientation="Orientation.Vertical" HorizontalAlignment="HorizontalAlignment.Center">
+					<ValidationMessage For="@(() => customer.FirstName)" />
+					<FluentTextField Disabled="!editUser" @bind-Value="customer.FirstName" TextFieldType="TextFieldType.Text" Name="customer.FirstName" Label="First Name" />
+
+					<ValidationMessage For="@(() => customer.LastName)" />
+					<FluentTextField Disabled="!editUser" @bind-Value="customer.LastName" TextFieldType="TextFieldType.Text" Name="customer.LastName" Label="Last Name" />
+
+					<ValidationMessage For="@(() => customer.PhoneNumber)" />
+					<FluentTextField Disabled="!editUser" @bind-Value="customer.PhoneNumber" TextFieldType="TextFieldType.Text" Name="customer.PhoneNumber" Label="Phone Number" />
+				</FluentStack>
+				<FluentStack Width="49%" Orientation="Orientation.Vertical" HorizontalAlignment="HorizontalAlignment.Center">
+					<ValidationMessage For="@(() => customer.Email)" />
+					<FluentTextField Disabled="true" @bind-Value="customer.Email" TextFieldType="TextFieldType.Text" Name="customer.Email" Label="Email" />
+
+					@if (customer.Roles != null && customer.Roles.Count() > 0)
+					{
+						<div>
+							<div>Your Roles:</div>
+							@foreach (var role in customer.Roles)
+							{
+								<div>@role</div>
+							}
+						</div>
+					}
+				</FluentStack>
+			</FluentStack>
+			@if (editUser)
+			{
+				<FluentStack Wrap=true Orientation="Orientation.Horizontal" HorizontalAlignment="HorizontalAlignment.Center">
+					<FluentStack Width="49%"></FluentStack>
+					<FluentStack Width="49%" HorizontalAlignment="HorizontalAlignment.Center">
+						<FluentButton Appearance="Appearance.Accent" Type="ButtonType.Submit">Save Changes</FluentButton>
+					</FluentStack>
+				</FluentStack>
+			}
+		</EditForm>
+		<FluentDivider />
+		<FluentStack Wrap="true" Orientation="Orientation.Horizontal" HorizontalAlignment="HorizontalAlignment.Center" VerticalGap="30">
+
+			<EditForm style="width: 49%;" EditContext="@editContextUserShippingAddress" FormName="EditShippingAddress" OnValidSubmit="SubmitCustomerProfile">
+				<h3>Shipping Address</h3>
+				@if (string.IsNullOrEmpty(customer.ShippingAddress.HouseNum) || string.IsNullOrEmpty(customer.ShippingAddress.Country) || string.IsNullOrEmpty(customer.ShippingAddress.Street) || string.IsNullOrEmpty(customer.ShippingAddress.State) || string.IsNullOrEmpty(customer.ShippingAddress.City) || string.IsNullOrEmpty(customer.ShippingAddress.ZipCode))
+				{
+					<div class="profile-information-warning">In order to buy something you need to provide the Shipping Address!</div>
+				}
+
+				<FluentStack Orientation="Orientation.Vertical" HorizontalAlignment="HorizontalAlignment.Center">
+					<DataAnnotationsValidator />
+
+					<ValidationMessage For="@(() => customer.ShippingAddress.Street)" />
+					<FluentTextField Disabled="!editUser" @bind-Value="customer.ShippingAddress.Street" TextFieldType="TextFieldType.Text" Name="customer.ShippingAddress.Street" Label="Street" />
+
+
+					<ValidationMessage For="@(() => customer.ShippingAddress.HouseNum)" />
+					<FluentTextField Disabled="!editUser" @bind-Value="customer.ShippingAddress.HouseNum" TextFieldType="TextFieldType.Text" Name="customer.ShippingAddress.HouseNum" Label="House Number" />
+
+
+					<ValidationMessage For="@(() => customer.ShippingAddress.ZipCode)" />
+					<FluentTextField Disabled="!editUser" @bind-Value="customer.ShippingAddress.ZipCode" TextFieldType="TextFieldType.Text" Name="customer.ShippingAddress.ZipCode" Label="Zip Code" />
+
+
+					<ValidationMessage For="@(() => customer.ShippingAddress.City)" />
+					<FluentTextField Disabled="!editUser" @bind-Value="customer.ShippingAddress.City" TextFieldType="TextFieldType.Text" Name="customer.ShippingAddress.City" Label="City" />
+
+
+					<ValidationMessage For="@(() => customer.ShippingAddress.Country)" />
+					<FluentTextField Disabled="!editUser" @bind-Value="customer.ShippingAddress.Country" TextFieldType="TextFieldType.Text" Name="customer.ShippingAddress.Country" Label="Coutry" />
+
+
+					<ValidationMessage For="@(() => customer.ShippingAddress.State)" />
+					<FluentTextField Disabled="!editUser" @bind-Value="customer.ShippingAddress.State" TextFieldType="TextFieldType.Text" Name="customer.ShippingAddress.State" Label="State" />
+
+					@if (editUser)
+					{
+						<FluentButton Appearance="Appearance.Accent" Type="ButtonType.Submit">Save Changes</FluentButton>
+					}
+				</FluentStack>
+			</EditForm>
+
+
+			<EditForm style="width: 49%;" EditContext="@editContextUserBillingAnddress" FormName="EditBillingAddress" OnValidSubmit="SubmitCustomerProfile">
+				<h3>Billing Address</h3>
+				@if (string.IsNullOrEmpty(customer.BillingAddress.HouseNum) || string.IsNullOrEmpty(customer.BillingAddress.Country) || string.IsNullOrEmpty(customer.BillingAddress.Street) || string.IsNullOrEmpty(customer.BillingAddress.State) || string.IsNullOrEmpty(customer.BillingAddress.City) || string.IsNullOrEmpty(customer.BillingAddress.ZipCode))
+				{
+					<div class="profile-information-warning">In order to buy something you need to provide the Billing Address!</div>
+				}
+
+				<FluentStack Orientation="Orientation.Vertical" HorizontalAlignment="HorizontalAlignment.Center">
+					<DataAnnotationsValidator />
+
+					<ValidationMessage For="@(() => customer.BillingAddress.Street)" />
+					<FluentTextField Disabled="!editUser" @bind-Value="customer.BillingAddress.Street" TextFieldType="TextFieldType.Text" Name="customer.BillingAddress.Street" Label="Street" />
+
+
+					<ValidationMessage For="@(() => customer.BillingAddress.HouseNum)" />
+					<FluentTextField Disabled="!editUser" @bind-Value="customer.BillingAddress.HouseNum" TextFieldType="TextFieldType.Text" Name="customer.BillingAddress.HouseNum" Label="House Number" />
+
+
+					<ValidationMessage For="@(() => customer.BillingAddress.ZipCode)" />
+					<FluentTextField Disabled="!editUser" @bind-Value="customer.BillingAddress.ZipCode" TextFieldType="TextFieldType.Text" Name="customer.BillingAddress.ZipCode" Label="Zip Code" />
+
+
+					<ValidationMessage For="@(() => customer.BillingAddress.City)" />
+					<FluentTextField Disabled="!editUser" @bind-Value="customer.BillingAddress.City" TextFieldType="TextFieldType.Text" Name="customer.BillingAddress.City" Label="City" />
+
+
+					<ValidationMessage For="@(() => customer.BillingAddress.Country)" />
+					<FluentTextField Disabled="!editUser" @bind-Value="customer.BillingAddress.Country" TextFieldType="TextFieldType.Text" Name="customer.BillingAddress.Country" Label="Coutry" />
+
+
+					<ValidationMessage For="@(() => customer.BillingAddress.State)" />
+					<FluentTextField Disabled="!editUser" @bind-Value="customer.BillingAddress.State" TextFieldType="TextFieldType.Text" Name="customer.BillingAddress.State" Label="State" />
+
+					@if (editUser)
+					{
+						<FluentButton Appearance="Appearance.Accent" Type="ButtonType.Submit">Save Changes</FluentButton>
+					}
+				</FluentStack>
+			</EditForm>
+
+		</FluentStack>
+	</FluentStack>
+}
+
+<style>
+	.fluent-input-label {
+	margin-bottom: -0.5rem !important;
+	}
+
+	fluent-text-field {
+	width: 20rem;
+	}
+
+	.profile-information-warning {
+	color: indianred;
+	margin-bottom: 1rem;
+	font-style: italic;
+	}
+</style>
+
+@code {
+	public EditContext? editContextUserProfile;
+	public EditContext? editContextUserShippingAddress;
+	public EditContext? editContextUserBillingAnddress;
+
+	[SupplyParameterFromForm]
+	public CustomerDTO customer { get; set; } = new() { BillingAddress = new(), ShippingAddress = new(), Cart = new() };
+
+	[SupplyParameterFromForm]
+	public BillingAddressDTO billingAddress { get; set; } = new();
+
+	[SupplyParameterFromForm]
+	public ShippingAddressDTO shippingAddress { get; set; } = new();
+
+	public bool editUser = false;
+	public string editUserBtnText = "Edit Profile";
+
+
+	protected override async Task OnInitializedAsync()
+	{
+		editContextUserShippingAddress = new(shippingAddress);
+		editContextUserBillingAnddress = new(billingAddress);
+		editContextUserProfile = new(customer);
+	}
+
+	protected override async Task OnAfterRenderAsync(bool firstRender)
+	{
+		if (firstRender)
+		{
+			await GetCustomer();
+
+			billingAddress = customer.BillingAddress;
+			shippingAddress = customer.ShippingAddress;
+
+			StateHasChanged();
+		}
+	}
+
+	private async Task GetCustomer()
+	{
+		try
+		{
+			//get user id
+			var user = await AuthStateProvider.GetAuthenticationStateAsync();
+			var token = user.User.FindFirst("access_token")?.Value;
+
+			var handler = new JwtSecurityTokenHandler();
+			var jwtTokenParsed = handler.ReadJwtToken(token);
+
+
+			var userId = jwtTokenParsed.Claims.FirstOrDefault(x => x.Type == JwtRegisteredClaimNames.NameId)?.Value;
+
+			customer = await CustomerApiClient.GetCustomerDetailsAsync(Convert.ToInt32(userId));
+		}
+		catch (UnauthorizedAccessException ex)
+		{
+			ToastService.ShowError("Unauthorized. Please Login again!");
+			NavManager.NavigateTo("/logout");
+		}
+		catch (Exception ex)
+		{
+			ToastService.ShowError("Your user data could not be loaded! Please try again.");
+			_logger.LogError("Error while setting up user data for UserDetails page: " + ex.ToString());
+		}
+	}
+
+
+	public void StartUserEdit()
+	{
+		editUser = !editUser;
+
+		if (editUser)
+		{
+			editUserBtnText = "Discard Edit";
+		}
+		else editUserBtnText = "Edit Profile";
+	}
+
+
+	private async Task SubmitCustomerProfile()
+	{
+		try
+		{
+			if (customer == null)
+			{
+				ToastService.ShowError("Updating user did not work!");
+				return;
+			}
+
+			customer.Roles = [];
+			var successUpdate = await CustomerApiClient.UpdateCustomer(customer);
+			if (!successUpdate) ToastService.ShowError("User was not updated");
+			else
+			{
+				ToastService.ShowSuccess($"Update user {customer.FirstName} was successfull.");
+			}
+		}
+		catch (UnauthorizedAccessException ex)
+		{
+			ToastService.ShowError("Unauthorized. Please Login again!");
+			NavManager.NavigateTo("/logout");
+		}
+		catch (Exception ex)
+		{
+			ToastService.ShowError("The customer could not be updated. Please try again!");
+			_logger.LogError("Error while updating customer. Error: " + ex.ToString());
+		}
+
+		StartUserEdit();
+		await GetCustomer();
+	}
+
+
+	private async Task DisableCustomer()
+	{
+		var dialog = await DialogService.ShowDialogAsync(@<div>Are you shure you want to delete your user @(customer.FirstName+ " " + customer.LastName)?</div>, new DialogParameters
+																																						 {
+																																							 Title = "Delete Your User",
+																																						 });
+
+		var result = await dialog.Result;
+		if (!result.Cancelled)
+		{
+			var delteSuccess = await CustomerApiClient.DeleteCustomer(customer);
+
+			if (delteSuccess)
+			{
+				NavManager.NavigateTo("/logout");
+			}
+			else
+			{
+				StartUserEdit();
+				await DialogService.ShowErrorAsync($"The deletion of your user was not successfull! You might relaod the page.");
+			}
+		}
+	}
+}

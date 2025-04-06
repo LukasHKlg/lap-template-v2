@@ -1,7 +1,175 @@
 ﻿@page "/"
+@using OnlineShop.Shared.Models
+@using OnlineShop.Web.Helpers
 
-<PageTitle>Home</PageTitle>
+@rendermode InteractiveServer
 
-<h1>Hello, world!</h1>
+@inject ProductApiClient ProductApiClient
+@inject IToastService ToastService
+@inject NavigationManager NavManager
+@inject AppsettingsConfigService ConfigHelper
 
-Welcome to your new app.
+<PageTitle>OnlineShop</PageTitle>
+
+
+<FluentGrid>
+	@if (productsPagination != null)
+	{
+		<FluentGridItem Justify="JustifyContent.FlexEnd" xs="12">
+			<FluentSearch Immediate="true" ImmediateDelay="800" Placeholder="Search for products" @bind-Value="_searchValue" @bind-Value:after=HandleSearchInput Size="40" Appearance="FluentInputAppearance.Outline" />
+		</FluentGridItem>
+		<FluentStack Wrap="true" HorizontalAlignment="HorizontalAlignment.Left">
+			@foreach (var product in productsPagination.Items)
+			{
+				<FluentCard Class="product-card-fluent" Width="20rem" Height="20rem" AreaRestricted="false" onclick="@(() => RedirectTo($"/product/{product.Id}"))">
+					<div class="product-card">
+						<img class="product-card-img" src="@(Helpers.GetPictureUrl(product.Id + ".jpg", ConfigHelper))" />
+						<div class="product-card-name">
+							@product.Name
+						</div>
+						<div class="product-card-manufacturer">
+							@product.Manufacturer
+						</div>
+						<div class="product-card-price">
+							@product.Price €
+						</div>
+						<div class="product-card-description">
+							@product.Description
+						</div>
+					</div>
+				</FluentCard>
+			}
+		</FluentStack>
+
+		@if (productsPagination.HasNextPage)
+		{
+			<FluentGridItem Justify="JustifyContent.Center" xs="12">
+				<FluentButton Appearance="Appearance.Lightweight" OnClick="LoadMoreProducts">Load More</FluentButton>
+			</FluentGridItem>
+		}
+	}
+	else
+	{
+		@currentStateMessageWithoutData
+	}
+</FluentGrid>
+
+<style>
+	.product-card-name {
+	font-size: 1.8rem;
+	font-weight: bold;
+	height: 2rem;
+	margin-bottom: .5rem;
+	}
+
+	.product-card-img {
+	height: 10rem;
+	width: 100%;
+	object-fit: cover;
+	}
+
+	.product-card-fluent:hover {
+	border: 1px black solid;
+	cursor: pointer;
+	}
+
+	.product-card-price {
+	font-weight: 500;
+	font-size: 1rem;
+	}
+
+	.product-card-description {
+	max-height: 4rem;
+	margin-top: .5rem;
+	text-overflow: ellipsis;
+	overflow: hidden;
+	white-space: nowrap;
+	}
+
+	.product-card-manufacturer {
+	margin-bottom: .5rem;
+	}
+
+</style>
+
+
+
+@code {
+	private int pageIndex = 0;
+	private int pageSize = 20;
+	private string currentStateMessageWithoutData = "Loading ...";
+
+	private PaginatedList<ProductDTO> productsPagination { get; set; }
+
+	private string? _searchValue;
+
+	protected override async Task OnAfterRenderAsync(bool firstRender)
+	{
+		if (firstRender)
+		{
+			try
+			{
+				productsPagination = await ProductApiClient.GetProductsAsync(pageIndex+1, pageSize);
+				pageIndex = productsPagination.PageIndex;
+			}
+			catch (Exception ex)
+			{
+				ToastService.ShowError("Error while loading the products. Please try again.");
+			}
+			StateHasChanged();
+		}
+
+		await base.OnAfterRenderAsync(firstRender);
+	}
+
+
+	private async Task LoadMoreProducts()
+	{
+		var currentItems = productsPagination.Items;
+
+		var newProducts = await ProductApiClient.GetProductsAsync(pageIndex +1, pageSize);
+		currentItems.AddRange(newProducts.Items);
+		newProducts.Items = currentItems.DistinctBy(i => i.Id).ToList();
+
+		productsPagination = newProducts;
+
+		pageIndex = productsPagination.PageIndex;
+
+		StateHasChanged();
+	}
+
+	private async Task HandleSearchInput()
+	{
+		try
+		{
+			if (string.IsNullOrEmpty(_searchValue)){
+				productsPagination = await ProductApiClient.GetProductsAsync(pageSize: pageSize);
+				pageIndex = productsPagination.PageIndex;
+			}
+			else{
+				productsPagination = await ProductApiClient.GetProductsForSearchAsync(_searchValue ?? "", pageSize: pageSize);
+				pageIndex = productsPagination.PageIndex;
+			}
+
+		}
+		catch (HttpRequestException ex)
+		{
+			if (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+			{
+				ToastService.ShowInfo("Nothing Found for that search");
+				//currentStateMessageWithoutData = "Nothing Found for that search";
+			}
+			else ToastService.ShowError("There has been an error searching for a product.");
+		}
+		catch (Exception)
+		{
+			
+			throw;
+		}
+	}
+
+	private void RedirectTo(string path)
+	{
+		NavManager.NavigateTo(path);
+	}
+}

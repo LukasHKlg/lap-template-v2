@@ -1,0 +1,116 @@
+﻿@page "/register"
+
+@using Microsoft.AspNetCore.Authentication
+@using Microsoft.AspNetCore.Authentication.Cookies
+@using Microsoft.AspNetCore.Identity
+@using OnlineShop.Shared.Constants
+@using OnlineShop.Shared.Models
+@using OnlineShop.Web.Services
+@using System.ComponentModel.DataAnnotations
+@using System.Security.Claims
+
+@inject NavigationManager NavManager
+@inject IHttpContextAccessor HttpContextAccessor
+@inject HttpClient _httpClient
+@inject IHttpClientFactory IHttpClientFactory
+
+<PageTitle>Register</PageTitle>
+
+
+<FluentGrid Justify="JustifyContent.Center" Style="height: 100%;" Class="login-page-grid">
+	<FluentGridItem Justify="JustifyContent.Center" Style="height: 100%">
+		<EditForm EditContext="@registerEditContext" id="register-form" class="login-register-form" FormName="Register" OnSubmit="CheckRegister">
+			<h1>Register</h1>
+
+			<DataAnnotationsValidator />
+
+			<ValidationMessage For="@(() => registerModel.Email)" />
+			<FluentTextField Autofocus="true" Size="35" Required @bind-Value="registerModel.Email" TextFieldType="TextFieldType.Email" Placeholder="E-Mail" Id="txtRegister" Name="registerModel.Email" Label="E-Mail">
+				<FluentIcon Value="new Icons.Regular.Size20.Mail()" Slot="end" />
+			</FluentTextField>
+			<br />
+
+			<ValidationMessage For="@(() => registerModel.Password)" />
+			<FluentTextField @bind-Value="registerModel.Password" Pattern="@WebConstants.PasswordRegexPattern" Required TextFieldType="TextFieldType.Password" Placeholder="Password" Id="txtPassword" Name="registerModel.Password" Label="Password">
+				<FluentIcon Value="new Icons.Regular.Size20.Key()" Slot="end" />
+			</FluentTextField>
+			<br />
+			<ValidationMessage For="@(() => registerModel.isValid)" />
+			<br />
+			<FluentButton Id="submit" Type="ButtonType.Submit" FormId="register-form" Appearance="Appearance.Accent">Create Account</FluentButton>
+		</EditForm>
+	</FluentGridItem>
+</FluentGrid>
+
+
+@code {
+	[SupplyParameterFromForm]
+	public RegisterModel registerModel { get; set; } = new();
+	public EditContext? registerEditContext;
+	ValidationMessageStore validationMessages;
+
+
+	protected override async Task OnInitializedAsync()
+	{
+		registerEditContext = new(registerModel);
+		validationMessages = new(registerEditContext);
+	}
+
+	private async Task CheckRegister()
+	{
+		bool registerFormValid = registerEditContext.Validate();
+		var validField = registerEditContext.Field(nameof(registerModel.isValid));
+
+		if (!registerFormValid)
+		{
+			validationMessages.Add(validField, "All input fields have to be set!");
+			registerModel.Password = "";
+			registerModel.Email = "";
+			return;
+		}
+
+
+		_httpClient = IHttpClientFactory.CreateClient("ApiClient");
+
+
+		var response = await _httpClient.PostAsJsonAsync("/api/auth/register", registerModel);
+		if (response.IsSuccessStatusCode)
+		{
+			var result = await response.Content.ReadFromJsonAsync<RegisterResponse>();
+			var message = result?.message;
+
+			if (!string.IsNullOrEmpty(message))
+			{
+				// Navigate to the home page (or a secure page)
+				NavManager.NavigateTo("/login");
+			}
+			else
+			{
+				validationMessages.Add(validField, "Register failed: Try again.");
+			}
+		}
+		else
+		{
+			try
+			{
+				var message = await response.Content.ReadAsStringAsync();
+				validationMessages.Add(validField, message);
+			}
+			catch (Exception )
+			{
+				validationMessages.Add(validField, "Register failed: Try again.");
+			}
+		}
+	}
+
+
+	public class RegisterModel : RegisterRequest
+	{
+		public bool isValid = false;
+	}
+
+	public class RegisterResponse
+	{
+		public string message { get; set; }
+	}
+}
