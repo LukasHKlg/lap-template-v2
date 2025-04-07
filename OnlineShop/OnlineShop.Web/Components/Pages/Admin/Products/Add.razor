@@ -34,6 +34,7 @@
 			<ValidationMessage For="@(() => Product.Stock)" />
 			<FluentNumberField Style="width: 100%" @bind-Value="Product.Stock" Placeholder="Product Stock" Name="Product.Stock" Label="Stock" />
 
+
 			<InputFile OnChange="HandleFileSelected" accept=".jpg" />
 
 
@@ -65,7 +66,7 @@
 		{
 			if (FileUploadNotFinished)
 			{
-				ToastService.ShowWarning("You have to upload a picture!");
+				ToastService.ShowWarning("You have to upload a picture! Max size is 500Kb!");
 				return;
 			}
 
@@ -88,10 +89,13 @@
 				ToastService.ShowError("Unauthorized. Please Login again!");
 				NavManager.NavigateTo("/logout");
 			}
-			catch (Exception)
+			catch (Exception ex)
 			{
 				//delete product if file upload failes
 				await ProductApiClient.DeleteProduct(newAddedProduct);
+				ToastService.ShowError($"No product has been added. Something went wrong with the selected picture upload. Please try again!");
+				_logger.LogError("Error while adding product picture. Error: " + ex.ToString());
+				newAddedProduct = null;
 			}
 
 
@@ -115,7 +119,14 @@
 
 	private async Task HandleFileSelected(InputFileChangeEventArgs e)
 	{
-		this.file = e.File;
-		FileUploadNotFinished = false;
+		if (e.File.Size <= 512000)
+		{
+			this.file = e.File;
+			FileUploadNotFinished = false;
+		}
+		else
+		{
+			ToastService.ShowWarning("You have to upload a picture with a max size of 500Kb!");
+		}
 	}
 }
